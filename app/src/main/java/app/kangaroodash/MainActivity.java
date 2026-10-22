@@ -309,7 +309,12 @@ public class MainActivity extends Activity {
         elapsedText.setText(String.format(java.util.Locale.US,
                 "Elapsed time: %02d:%02d:%02d",
                 seconds / 3600, (seconds % 3600) / 60, seconds % 60));
-        speedText.setText("Speed: " + SolverService.speed);
+        long telemetryAge = SolverService.lastTelemetryAtMs > 0
+                ? android.os.SystemClock.elapsedRealtime() - SolverService.lastTelemetryAtMs
+                : Long.MAX_VALUE;
+        String liveSpeed = SolverService.running && telemetryAge <= 5000
+                ? SolverService.speed : "—";
+        speedText.setText("Speed: " + liveSpeed);
 
         tempText.setText(String.format(
             java.util.Locale.US, "Battery temperature: %.1f°C", SolverService.temp

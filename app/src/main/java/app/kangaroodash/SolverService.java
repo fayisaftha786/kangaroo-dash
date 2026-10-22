@@ -13,6 +13,8 @@ public class SolverService extends Service {
     static volatile int restarts = 0;
     static volatile long sessionStartMs = 0, elapsedMs = 0;
     static volatile String speed = "—";
+    static volatile boolean resultVerified = false;
+    static volatile long lastTelemetryAtMs = 0;
     static volatile float temp = 0;
     java.lang.Process proc;
     Thread worker;
@@ -34,7 +36,7 @@ public class SolverService extends Service {
         wl.acquire();
         final String[] a = { in.getStringExtra("pub"), in.getStringExtra("start"), in.getStringExtra("range"),
                              in.getStringExtra("dp"), in.getStringExtra("k") };
-        running = true; restarts = 0; found = ""; sessionStartMs = SystemClock.elapsedRealtime(); elapsedMs = 0; speed = "—";
+        running = true; restarts = 0; found = ""; resultVerified = false; lastTelemetryAtMs = 0; sessionStartMs = SystemClock.elapsedRealtime(); elapsedMs = 0; speed = "—";
         worker = new Thread(() -> loop(a));
         worker.start();
         return START_NOT_STICKY;
@@ -55,6 +57,7 @@ public class SolverService extends Service {
         File logF = new File(dir, "scan.log");
         try { if (foundF.exists()) foundF.delete(); } catch (Exception ignored) {}
         while (running) {
+            boolean processVerified = false;
             temp = batt();
             if (temp >= 45f) { status = "തണുക്കുന്നു " + temp + "°C"; pause(30000); continue; }
             try {
@@ -71,11 +74,14 @@ public class SolverService extends Service {
                 }
                 String line;
                 while ((line = r.readLine()) != null) {
+                    if (line.contains("Verification: SUCCESS")) processVerified = true;
+                    if (line.contains("Verification FAILED") || line.contains("Collision candidate failed verification")) processVerified = false;
                     line = line.replaceAll("\u001B\\[[0-9;]*m", "");
                     try (FileWriter log = new FileWriter(logF, true)) { log.write(line + "\n"); } catch (Exception ignored) {}
                     Matcher m = OPS.matcher(line);
                     if (m.find()) {
                         long now = SystemClock.elapsedRealtime();
+                        lastTelemetryAtMs = now;
                         long currentOps;
                         try { currentOps = Long.parseLong(m.group(1)); }
                         catch (NumberFormatException ex) { currentOps = -1; }
@@ -100,7 +106,15 @@ public class SolverService extends Service {
             if (foundF.exists() && foundF.length() > 0) {
                 try (BufferedReader b = new BufferedReader(new FileReader(foundF))) { found = b.readLine(); }
                 catch (Exception e) { found = "found.txt കാണുക"; }
-                status = "KEY FOUND"; running = false; break;
+                if (processVerified) {
+                    resultVerified = true;
+                    status = "KEY FOUND — verification success";
+                } else {
+                    resultVerified = false;
+                    status = "UNVERIFIED RESULT — scan.log പരിശോധിക്കുക";
+                }
+                running = false;
+                break;
             }
             if (running) { restarts++; status = "restart-ന് കാത്തിരിക്കുന്നു"; pause(30000); }
         }
