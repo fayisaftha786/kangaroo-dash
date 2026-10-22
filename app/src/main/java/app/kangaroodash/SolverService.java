@@ -11,6 +11,8 @@ public class SolverService extends Service {
     static volatile boolean running = false;
     static volatile String status = "നിർത്തി", ops = "-", dps = "-", found = "";
     static volatile int restarts = 0;
+    static volatile long sessionStartMs = 0, elapsedMs = 0;
+    static volatile String speed = "—";
     static volatile float temp = 0;
     java.lang.Process proc;
     Thread worker;
@@ -32,7 +34,7 @@ public class SolverService extends Service {
         wl.acquire();
         final String[] a = { in.getStringExtra("pub"), in.getStringExtra("start"), in.getStringExtra("range"),
                              in.getStringExtra("dp"), in.getStringExtra("k") };
-        running = true; restarts = 0; found = "";
+        running = true; restarts = 0; found = ""; sessionStartMs = SystemClock.elapsedRealtime(); elapsedMs = 0; speed = "—";
         worker = new Thread(() -> loop(a));
         worker.start();
         return START_NOT_STICKY;
@@ -49,6 +51,9 @@ public class SolverService extends Service {
         String bin = getApplicationInfo().nativeLibraryDir + "/libkangaroo.so";
         File dir = getFilesDir();
         File foundF = new File(dir, "found.txt");
+        long previousOps = -1, previousOpsAt = 0;
+        File logF = new File(dir, "scan.log");
+        try { if (foundF.exists()) foundF.delete(); } catch (Exception ignored) {}
         while (running) {
             temp = batt();
             if (temp >= 45f) { status = "തണുക്കുന്നു " + temp + "°C"; pause(30000); continue; }
@@ -61,11 +66,30 @@ public class SolverService extends Service {
                 status = "ഓടുന്നു";
                 proc = pb.start();
                 BufferedReader r = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+                try (FileWriter log = new FileWriter(logF, true)) {
+                    log.write("\n--- Solver process started: " + new java.util.Date() + " ---\n");
+                }
                 String line;
                 while ((line = r.readLine()) != null) {
                     line = line.replaceAll("\u001B\\[[0-9;]*m", "");
+                    try (FileWriter log = new FileWriter(logF, true)) { log.write(line + "\n"); } catch (Exception ignored) {}
                     Matcher m = OPS.matcher(line);
                     if (m.find()) {
+                        long now = SystemClock.elapsedRealtime();
+                        long currentOps;
+                        try { currentOps = Long.parseLong(m.group(1)); }
+                        catch (NumberFormatException ex) { currentOps = -1; }
+                        elapsedMs = Math.max(0, now - sessionStartMs);
+                        if (currentOps >= 0 && previousOps >= 0
+                                && currentOps >= previousOps && now > previousOpsAt) {
+                            double rate = (currentOps - previousOps) * 1000.0
+                                    / (now - previousOpsAt);
+                            speed = String.format(java.util.Locale.US, "%.2f M ops/s", rate);
+                        } else {
+                            speed = "—";
+                        }
+                        previousOps = currentOps;
+                        previousOpsAt = now;
                         ops = m.group(1) + "M"; dps = m.group(2);
                         temp = batt();
                         if (temp >= 45f) { proc.destroy(); break; }

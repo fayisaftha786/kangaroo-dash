@@ -20,7 +20,7 @@ public class MainActivity extends Activity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private TextView statusText, opsText, dpsText, storageText;
-    private TextView restartText, tempText, resultText;
+    private TextView restartText, tempText, resultText, elapsedText, speedText;
     private EditText pub, start, range, dp, kangaroos;
     private Button startButton, stopButton;
 
@@ -161,10 +161,18 @@ public class MainActivity extends Activity {
 
         addSection(root, "Performance", makeMetrics());
 
+        LinearLayout liveDetails = card();
+        elapsedText = text("Elapsed time: —", 13, TEXT, true);
+        speedText = text("Speed: —", 13, TEXT, true);
+        liveDetails.addView(elapsedText);
+        gap(liveDetails, 12);
+        liveDetails.addView(speedText);
+        addSection(root, "Live scan", liveDetails);
+
         LinearLayout details = card();
         storageText = text("DP storage: —", 13, TEXT, false);
         restartText = text("Restarts: —", 13, TEXT, false);
-        tempText = text("Device temperature: —", 13, TEXT, false);
+        tempText = text("Battery temperature: —", 13, TEXT, false);
         details.addView(storageText);
         gap(details, 12);
         details.addView(restartText);
@@ -292,8 +300,19 @@ public class MainActivity extends Activity {
 
         storageText.setText("DP storage: " + size);
         restartText.setText("Restarts: " + SolverService.restarts);
+        long elapsed = SolverService.elapsedMs;
+        if (SolverService.running && SolverService.sessionStartMs > 0) {
+            elapsed = android.os.SystemClock.elapsedRealtime()
+                    - SolverService.sessionStartMs;
+        }
+        long seconds = Math.max(0, elapsed / 1000);
+        elapsedText.setText(String.format(java.util.Locale.US,
+                "Elapsed time: %02d:%02d:%02d",
+                seconds / 3600, (seconds % 3600) / 60, seconds % 60));
+        speedText.setText("Speed: " + SolverService.speed);
+
         tempText.setText(String.format(
-            java.util.Locale.US, "Device temperature: %.1f°C", SolverService.temp
+            java.util.Locale.US, "Battery temperature: %.1f°C", SolverService.temp
         ));
 
         if (SolverService.found == null || SolverService.found.isEmpty()) {
