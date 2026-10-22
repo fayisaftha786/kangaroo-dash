@@ -3,76 +3,309 @@ package app.kangaroodash;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.*;
+import android.view.Gravity;
+import android.view.View;
 import android.widget.*;
 import java.io.File;
 
 public class MainActivity extends Activity {
-    TextView info;
-    Handler h = new Handler(Looper.getMainLooper());
+    private final int BG = 0xFF0B1020;
+    private final int CARD = 0xFF151E31;
+    private final int TEXT = 0xFFF1F5F9;
+    private final int MUTED = 0xFF9AA9C0;
+    private final int TEAL = 0xFF42E8C5;
 
-    EditText field(LinearLayout p, String hint, String val) {
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private TextView statusText, opsText, dpsText, storageText;
+    private TextView restartText, tempText, resultText;
+    private EditText pub, start, range, dp, kangaroos;
+    private Button startButton, stopButton;
+
+    private int dp(int n) {
+        return (int) (n * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    private GradientDrawable shape(int color, int radius) {
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(color);
+        d.setCornerRadius(dp(radius));
+        return d;
+    }
+
+    private TextView text(String value, int size, int color, boolean bold) {
+        TextView t = new TextView(this);
+        t.setText(value);
+        t.setTextSize(size);
+        t.setTextColor(color);
+        if (bold) t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        return t;
+    }
+
+    private LinearLayout column() {
+        LinearLayout l = new LinearLayout(this);
+        l.setOrientation(LinearLayout.VERTICAL);
+        return l;
+    }
+
+    private LinearLayout.LayoutParams lp(int w, int h) {
+        return new LinearLayout.LayoutParams(w < 0 ? w : dp(w), h < 0 ? h : dp(h));
+    }
+
+    private LinearLayout card() {
+        LinearLayout c = column();
+        c.setPadding(dp(16), dp(14), dp(16), dp(14));
+        c.setBackground(shape(CARD, 18));
+        return c;
+    }
+
+    private void gap(LinearLayout parent, int height) {
+        View v = new View(this);
+        parent.addView(v, lp(1, height));
+    }
+
+    private EditText field(LinearLayout parent, String label, String value) {
+        TextView title = text(label, 12, MUTED, true);
+        LinearLayout.LayoutParams titleLp = lp(-1, -2);
+        titleLp.bottomMargin = dp(6);
+        parent.addView(title, titleLp);
+
         EditText e = new EditText(this);
-        e.setHint(hint); e.setText(val); e.setTextSize(13);
-        e.setTextColor(Color.WHITE); e.setHintTextColor(Color.GRAY);
-        p.addView(e);
+        e.setSingleLine(true);
+        e.setText(value);
+        e.setTextSize(13);
+        e.setTextColor(TEXT);
+        e.setHintTextColor(MUTED);
+        e.setPadding(dp(12), dp(9), dp(12), dp(9));
+        e.setBackground(shape(0xFF0B1324, 10));
+        parent.addView(e, lp(-1, 46));
+        gap(parent, 12);
         return e;
     }
 
-    @Override protected void onCreate(Bundle b) {
-        super.onCreate(b);
-        if (Build.VERSION.SDK_INT >= 33)
-            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1);
-        ScrollView sv = new ScrollView(this);
-        sv.setBackgroundColor(0xFF0F1115);
-        LinearLayout p = new LinearLayout(this);
-        p.setOrientation(LinearLayout.VERTICAL);
-        p.setPadding(32, 64, 32, 32);
-        sv.addView(p);
-        TextView t = new TextView(this);
-        t.setText("Kangaroo"); t.setTextSize(22); t.setTextColor(Color.WHITE);
-        p.addView(t);
-        final EditText pub = field(p, "public key", "031f6a332d3c5c4f2de2378c012f429cd109ba07d69690c6c701b6bb87860d6640");
-        final EditText st = field(p, "start (hex)", "80000000000000000000000000000000000");
-        final EditText rg = field(p, "range (bits)", "139");
-        final EditText dp = field(p, "dp-bits", "20");
-        final EditText kg = field(p, "kangaroos", "256");
-        Button go = new Button(this);
-        go.setText("Start");
-        go.setOnClickListener(v -> {
-            Intent i = new Intent(this, SolverService.class);
-            i.putExtra("pub", pub.getText().toString().trim());
-            i.putExtra("start", st.getText().toString().trim());
-            i.putExtra("range", rg.getText().toString().trim());
-            i.putExtra("dp", dp.getText().toString().trim());
-            i.putExtra("k", kg.getText().toString().trim());
-            startForegroundService(i);
-        });
-        Button stop = new Button(this);
-        stop.setText("Stop");
-        stop.setOnClickListener(v -> {
+    private TextView metric(LinearLayout parent, String label, String value) {
+        TextView heading = text(label, 11, MUTED, true);
+        TextView number = text(value, 21, TEXT, true);
+        parent.addView(heading);
+        gap(parent, 7);
+        parent.addView(number);
+        return number;
+    }
+
+    private void addSection(LinearLayout root, String title, View content) {
+        TextView heading = text(title, 15, TEXT, true);
+        LinearLayout.LayoutParams hp = lp(-1, -2);
+        hp.topMargin = dp(20);
+        hp.bottomMargin = dp(10);
+        root.addView(heading, hp);
+        root.addView(content, lp(-1, -2));
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        getWindow().setStatusBarColor(BG);
+        getWindow().setNavigationBarColor(BG);
+        getWindow().getDecorView().setSystemUiVisibility(0);
+
+        if (Build.VERSION.SDK_INT >= 33) {
+            requestPermissions(
+                new String[]{"android.permission.POST_NOTIFICATIONS"}, 1
+            );
+        }
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(BG);
+
+        LinearLayout root = column();
+        root.setPadding(dp(20), dp(22), dp(20), dp(28));
+        scroll.addView(root);
+
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+
+        LinearLayout brand = column();
+        brand.addView(text("KANGAROO", 12, TEAL, true));
+        TextView heading = text("Solver Dashboard", 25, TEXT, true);
+        LinearLayout.LayoutParams headingLp = lp(-1, -2);
+        headingLp.topMargin = dp(5);
+        brand.addView(heading, headingLp);
+        brand.addView(text("Native engine • Live monitor", 12, MUTED, false));
+
+        header.addView(brand, new LinearLayout.LayoutParams(0, -2, 1f));
+        TextView badge = text("● LIVE", 11, TEAL, true);
+        badge.setPadding(dp(10), dp(8), dp(10), dp(8));
+        badge.setBackground(shape(0xFF12362F, 30));
+        header.addView(badge);
+        root.addView(header);
+
+        LinearLayout statusCard = card();
+        LinearLayout.LayoutParams scp = lp(-1, -2);
+        scp.topMargin = dp(22);
+        root.addView(statusCard, scp);
+
+        statusCard.addView(text("ENGINE STATUS", 11, MUTED, true));
+        statusText = text("Checking status…", 20, TEAL, true);
+        LinearLayout.LayoutParams stp = lp(-1, -2);
+        stp.topMargin = dp(8);
+        statusCard.addView(statusText, stp);
+        TextView statusHint = text(
+            "Status updates automatically", 12, MUTED, false
+        );
+        LinearLayout.LayoutParams shp = lp(-1, -2);
+        shp.topMargin = dp(5);
+        statusCard.addView(statusHint, shp);
+
+        addSection(root, "Performance", makeMetrics());
+
+        LinearLayout details = card();
+        storageText = text("DP storage: —", 13, TEXT, false);
+        restartText = text("Restarts: —", 13, TEXT, false);
+        tempText = text("Device temperature: —", 13, TEXT, false);
+        details.addView(storageText);
+        gap(details, 12);
+        details.addView(restartText);
+        gap(details, 12);
+        details.addView(tempText);
+        addSection(root, "System details", details);
+
+        LinearLayout config = card();
+        pub = field(config, "PUBLIC KEY (HEX)", 
+            "031f6a332d3c5c4f2de2378c012f429cd109ba07d69690c6c701b6bb87860d6640");
+        start = field(config, "START (HEX)", 
+            "80000000000000000000000000000000000");
+        range = field(config, "RANGE (BITS)", "139");
+        dp = field(config, "DP BITS", "20");
+        kangaroos = field(config, "KANGAROOS", "256");
+        addSection(root, "Solver configuration", config);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+
+        startButton = new Button(this);
+        startButton.setText("▶  START");
+        startButton.setTextColor(0xFF071A18);
+        startButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        startButton.setBackground(shape(TEAL, 14));
+        actions.addView(startButton, new LinearLayout.LayoutParams(0, dp(54), 1f));
+
+        View spacer = new View(this);
+        actions.addView(spacer, lp(12, 1));
+
+        stopButton = new Button(this);
+        stopButton.setText("■  STOP");
+        stopButton.setTextColor(TEXT);
+        stopButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        stopButton.setBackground(shape(0xFF343044, 14));
+        actions.addView(stopButton, new LinearLayout.LayoutParams(0, dp(54), 1f));
+
+        LinearLayout.LayoutParams actionLp = lp(-1, -2);
+        actionLp.topMargin = dp(18);
+        root.addView(actions, actionLp);
+
+        resultText = text("", 12, TEAL, false);
+        resultText.setTextIsSelectable(true);
+        LinearLayout.LayoutParams resultLp = lp(-1, -2);
+        resultLp.topMargin = dp(16);
+        root.addView(resultText, resultLp);
+
+        TextView footer = text(
+            "Kangaroo • Local device monitoring", 11, MUTED, false
+        );
+        footer.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams footerLp = lp(-1, -2);
+        footerLp.topMargin = dp(28);
+        root.addView(footer, footerLp);
+
+        startButton.setOnClickListener(v -> startSolver());
+        stopButton.setOnClickListener(v -> {
             Intent i = new Intent(this, SolverService.class);
             i.setAction("stop");
             startService(i);
+            statusText.setText("Stopping…");
         });
-        p.addView(go); p.addView(stop);
-        info = new TextView(this);
-        info.setTextColor(Color.WHITE); info.setTextSize(16); info.setPadding(0, 32, 0, 0);
-        p.addView(info);
-        setContentView(sv);
-        h.post(new Runnable() {
-            public void run() { refresh(); h.postDelayed(this, 2000); }
+
+        setContentView(scroll);
+
+        handler.post(new Runnable() {
+            @Override public void run() {
+                refresh();
+                handler.postDelayed(this, 2000);
+            }
         });
     }
 
-    void refresh() {
-        long kb = new File(getFilesDir(), "dp.json").length() / 1024;
-        info.setText("നില: " + SolverService.status
-            + "\nOps: " + SolverService.ops
-            + "\nDPs: " + SolverService.dps
-            + "\nസേവ് ചെയ്ത ഫയൽ: " + kb + " KB"
-            + "\nRestarts: " + SolverService.restarts
-            + "\nതാപനില: " + SolverService.temp + "°C"
-            + (SolverService.found.isEmpty() ? "" : "\n\nKEY: " + SolverService.found));
+    private View makeMetrics() {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+
+        LinearLayout opsCard = card();
+        opsText = metric(opsCard, "OPERATIONS", "—");
+        LinearLayout dpsCard = card();
+        dpsText = metric(dpsCard, "DISTINGUISHED POINTS", "—");
+
+        row.addView(opsCard, new LinearLayout.LayoutParams(0, -1, 1f));
+        View gap = new View(this);
+        row.addView(gap, lp(12, 1));
+        row.addView(dpsCard, new LinearLayout.LayoutParams(0, -1, 1f));
+        return row;
+    }
+
+    private void startSolver() {
+        if (pub.getText().toString().trim().isEmpty()
+            || start.getText().toString().trim().isEmpty()
+            || range.getText().toString().trim().isEmpty()
+            || dp.getText().toString().trim().isEmpty()
+            || kangaroos.getText().toString().trim().isEmpty()) {
+            statusText.setText("Please fill in every field");
+            return;
+        }
+
+        Intent i = new Intent(this, SolverService.class);
+        i.putExtra("pub", pub.getText().toString().trim());
+        i.putExtra("start", start.getText().toString().trim());
+        i.putExtra("range", range.getText().toString().trim());
+        i.putExtra("dp", dp.getText().toString().trim());
+        i.putExtra("k", kangaroos.getText().toString().trim());
+
+        try {
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i);
+            else startService(i);
+            statusText.setText("Starting engine…");
+        } catch (Exception e) {
+            statusText.setText("Could not start: " + e.getMessage());
+        }
+    }
+
+    private void refresh() {
+        statusText.setText(SolverService.status);
+        opsText.setText(SolverService.ops);
+        dpsText.setText(SolverService.dps);
+
+        long bytes = new File(getFilesDir(), "dp.json").length();
+        String size = bytes < 1024
+            ? bytes + " B"
+            : String.format(java.util.Locale.US, "%.1f KB", bytes / 1024.0);
+
+        storageText.setText("DP storage: " + size);
+        restartText.setText("Restarts: " + SolverService.restarts);
+        tempText.setText(String.format(
+            java.util.Locale.US, "Device temperature: %.1f°C", SolverService.temp
+        ));
+
+        if (SolverService.found == null || SolverService.found.isEmpty()) {
+            resultText.setText("");
+        } else {
+            resultText.setText("RESULT\n" + SolverService.found);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        handler.removeCallbacksAndMessages(null);
+        super.onDestroy();
     }
 }
