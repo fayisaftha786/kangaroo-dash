@@ -12,7 +12,7 @@ public class SolverService extends Service {
     static volatile String status = "നിർത്തി", ops = "-", dps = "-", found = "";
     static volatile int restarts = 0;
     static volatile float temp = 0;
-    Process proc;
+    java.lang.Process proc;
     Thread worker;
     PowerManager.WakeLock wl;
     static final Pattern OPS = Pattern.compile("Ops: (\\d+)M \\| DPs: (\\d+)");
