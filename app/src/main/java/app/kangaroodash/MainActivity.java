@@ -396,7 +396,7 @@ public class MainActivity extends Activity {
         long appMax = runtime.maxMemory();
         memoryText.setText("RAM available to system: " + formatBytes(memoryInfo.availMem)
                 + " / " + formatBytes(memoryInfo.totalMem)
-                + "\\nApp Java heap: " + formatBytes(appUsed)
+                + "\nApp Java heap: " + formatBytes(appUsed)
                 + " used / " + formatBytes(appMax) + " max");
         restartText.setText("Restarts: " + SolverService.restarts);
         long elapsed = SolverService.elapsedMs;
