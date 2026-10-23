@@ -99,6 +99,23 @@ public class DiagnosticLogTest {
         }
     }
 
+    @Test public void removesOversizedLegacyBackup() throws Exception {
+        File dir = Files.createTempDirectory("kangaroo-log-old-backup").toFile();
+        File log = new File(dir, "scan.log");
+        File backup = new File(dir, "scan.log.1");
+        try {
+            Files.write(backup.toPath(), new byte[(int) DiagnosticLog.MAX_BYTES + 1]);
+            DiagnosticLog.append(log, "fresh-session");
+
+            assertTrue("oversized backup should be discarded", !backup.exists());
+            assertTrue("new log should remain bounded", log.length() <= DiagnosticLog.MAX_BYTES);
+        } finally {
+            if (backup.exists()) backup.delete();
+            if (log.exists()) log.delete();
+            dir.delete();
+        }
+    }
+
     @Test public void nullMessageIsWrittenAsEmptyLine() throws Exception {
         File dir = Files.createTempDirectory("kangaroo-log-null").toFile();
         File log = new File(dir, "scan.log");
