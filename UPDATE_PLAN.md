@@ -58,7 +58,7 @@ The restart counter is reset at each new service start and increments on each in
 ### Phase 2 — Input and state safety
 - [ ] Document the native CLI contract for public key, start value, range bits, DP bits, and kangaroo count.
 - [ ] Add tests for numeric boundaries, malformed lengths, prefix cases, overflow, and empty values.
-- [ ] Once native expectations are known, validate actual curve-point encoding and start/range consistency.
+- [x] Validate compressed/uncompressed secp256k1 public keys against the curve equation and replace the invalid hard-coded sample key with the valid generator point. Start/range consistency still requires the native CLI contract.
 - [ ] Add lifecycle regression tests or a small state-machine abstraction for START/STOP/restart races before changing service control further.
 
 ### Phase 3 — Telemetry reliability
