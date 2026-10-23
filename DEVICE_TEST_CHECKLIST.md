@@ -26,6 +26,9 @@ Before attaching logs to an issue or PR, inspect and redact any secrets, persona
 - [ ] App opens without a crash and all fields remain usable after rotating/reopening if rotation is supported.
 - [ ] START with valid test inputs produces one foreground service and one engine process.
 - [ ] Repeated START taps do not launch duplicate engine processes.
+- [ ] While a bounded test run is active, recreate the service/process as supported by the test setup, then issue STOP from the recreated service; verify the original native process exits and no second engine starts.
+- [ ] During this case, confirm foreground notification cleanup, wake-lock release, and STOPPED UI state after cleanup.
+- [ ] If native termination cannot be confirmed, verify cleanup is reported as unresolved and another START is blocked until the tracked process is dead.
 - [ ] STOP during startup, active output, a quiet/no-output period, and a restart delay stops the process promptly.
 - [ ] After STOP, the foreground notification disappears, the wake lock is released, and the UI settles to STOPPED.
 - [ ] Backgrounding the app and turning the screen off do not cause unexpected duplicate runs or stale RUNNING state.
