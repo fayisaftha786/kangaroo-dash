@@ -78,6 +78,27 @@ public class DiagnosticLogTest {
         }
     }
 
+    @Test public void discardsOversizedLegacyLogInsteadOfRotatingIt() throws Exception {
+        File dir = Files.createTempDirectory("kangaroo-log-legacy").toFile();
+        File log = new File(dir, "scan.log");
+        File backup = new File(dir, "scan.log.1");
+        try {
+            byte[] oversized = new byte[(int) DiagnosticLog.MAX_BYTES + 1];
+            Files.write(log.toPath(), oversized);
+
+            DiagnosticLog.append(log, "fresh-session");
+
+            assertTrue("fresh log should be bounded", log.length() <= DiagnosticLog.MAX_BYTES);
+            assertTrue("oversized legacy log must not become an oversized backup", !backup.exists());
+            assertTrue(new String(Files.readAllBytes(log.toPath()), StandardCharsets.UTF_8)
+                    .contains("fresh-session"));
+        } finally {
+            if (backup.exists()) backup.delete();
+            if (log.exists()) log.delete();
+            dir.delete();
+        }
+    }
+
     @Test public void nullMessageIsWrittenAsEmptyLine() throws Exception {
         File dir = Files.createTempDirectory("kangaroo-log-null").toFile();
         File log = new File(dir, "scan.log");
