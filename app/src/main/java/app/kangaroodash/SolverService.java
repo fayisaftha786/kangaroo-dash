@@ -266,10 +266,17 @@ public class SolverService extends Service {
                     appendLog(logF, "Engine exception: " + e.getClass().getSimpleName()
                             + ": " + safeMessage(e));
                 } finally {
-                    if (outputReader != null) outputReader.interrupt();
                     java.lang.Process current = proc;
                     proc = null;
                     terminateProcess(current);
+                    if (outputReader != null) {
+                        outputReader.interrupt();
+                        try {
+                            outputReader.join(250);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
                 }
 
                 if (foundF.exists() && foundF.length() > 0) {
