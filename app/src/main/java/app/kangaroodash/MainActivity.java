@@ -347,7 +347,7 @@ public class MainActivity extends Activity {
             ? bytes + " B"
             : String.format(java.util.Locale.US, "%.1f KB", bytes / 1024.0);
 
-        storageText.setText("DP storage: " + size);
+        storageText.setText("DP file size (save/load unverified): " + size);
         restartText.setText("Restarts: " + SolverService.restarts);
         long elapsed = SolverService.elapsedMs;
         if (SolverService.running && SolverService.sessionStartMs > 0) {
