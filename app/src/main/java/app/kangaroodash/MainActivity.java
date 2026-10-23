@@ -23,6 +23,7 @@ public class MainActivity extends Activity {
     private TextView restartText, tempText, resultText, elapsedText, speedText;
     private EditText pub, start, range, dp, kangaroos;
     private Button startButton, stopButton;
+    private TextView liveBadge;
 
     private int dp(int n) {
         return (int) (n * getResources().getDisplayMetrics().density + 0.5f);
@@ -136,7 +137,8 @@ public class MainActivity extends Activity {
         brand.addView(text("Native engine • Live monitor", 12, MUTED, false));
 
         header.addView(brand, new LinearLayout.LayoutParams(0, -2, 1f));
-        TextView badge = text("● LIVE", 11, TEAL, true);
+        liveBadge = text("● STOPPED", 11, MUTED, true);
+        TextView badge = liveBadge;
         badge.setPadding(dp(10), dp(8), dp(10), dp(8));
         badge.setBackground(shape(0xFF12362F, 30));
         header.addView(badge);
@@ -263,21 +265,52 @@ public class MainActivity extends Activity {
     }
 
     private void startSolver() {
-        if (pub.getText().toString().trim().isEmpty()
-            || start.getText().toString().trim().isEmpty()
-            || range.getText().toString().trim().isEmpty()
-            || dp.getText().toString().trim().isEmpty()
-            || kangaroos.getText().toString().trim().isEmpty()) {
+        String pubValue = pub.getText().toString().trim();
+        String startValue = start.getText().toString().trim();
+        String rangeValue = range.getText().toString().trim();
+        String dpValue = dp.getText().toString().trim();
+        String kangarooValue = kangaroos.getText().toString().trim();
+
+        if (pubValue.isEmpty() || startValue.isEmpty() || rangeValue.isEmpty()
+                || dpValue.isEmpty() || kangarooValue.isEmpty()) {
             statusText.setText("Please fill in every field");
+            return;
+        }
+        if (!isHex(pubValue) || (pubValue.length() != 66 && pubValue.length() != 130)) {
+            statusText.setText("Invalid public key: expected 33-byte or 65-byte hex");
+            return;
+        }
+        if (!isHex(startValue)) {
+            statusText.setText("Invalid start value: use hexadecimal characters only");
+            return;
+        }
+        try {
+            int rangeBits = Integer.parseInt(rangeValue);
+            int dpBits = Integer.parseInt(dpValue);
+            int count = Integer.parseInt(kangarooValue);
+            if (rangeBits < 1 || rangeBits > 256) {
+                statusText.setText("Range bits must be between 1 and 256");
+                return;
+            }
+            if (dpBits < 1 || dpBits > 256) {
+                statusText.setText("DP bits must be between 1 and 256");
+                return;
+            }
+            if (count < 1 || count > 4096) {
+                statusText.setText("Kangaroos must be between 1 and 4096");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            statusText.setText("Range, DP bits and kangaroos must be whole numbers");
             return;
         }
 
         Intent i = new Intent(this, SolverService.class);
-        i.putExtra("pub", pub.getText().toString().trim());
-        i.putExtra("start", start.getText().toString().trim());
-        i.putExtra("range", range.getText().toString().trim());
-        i.putExtra("dp", dp.getText().toString().trim());
-        i.putExtra("k", kangaroos.getText().toString().trim());
+        i.putExtra("pub", pubValue);
+        i.putExtra("start", startValue);
+        i.putExtra("range", rangeValue);
+        i.putExtra("dp", dpValue);
+        i.putExtra("k", kangarooValue);
 
         try {
             if (Build.VERSION.SDK_INT >= 26) startForegroundService(i);
@@ -288,8 +321,24 @@ public class MainActivity extends Activity {
         }
     }
 
+    static boolean isHex(String value) {
+        if (value == null || value.isEmpty()) return false;
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            boolean digit = c >= '0' && c <= '9';
+            boolean lower = c >= 'a' && c <= 'f';
+            boolean upper = c >= 'A' && c <= 'F';
+            if (!digit && !lower && !upper) return false;
+        }
+        return true;
+    }
+
     private void refresh() {
         statusText.setText(SolverService.status);
+        boolean active = SolverService.running;
+        liveBadge.setText(active ? "● RUNNING" : "● STOPPED");
+        liveBadge.setTextColor(active ? TEAL : MUTED);
+        liveBadge.setBackground(shape(active ? 0xFF12362F : 0xFF252C3A, 30));
         opsText.setText(SolverService.ops);
         dpsText.setText(SolverService.dps);
 
