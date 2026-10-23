@@ -240,7 +240,7 @@ public class SolverService extends Service {
                             previousOpsAt = now;
                             ops = m.group(1) + "M";
                             dps = currentDpsText;
-                            status = "Telemetry active: Ops " + ops + " | DPs " + dps;
+                            if (!staleWarningLogged) status = "Telemetry active: Ops " + ops + " | DPs " + dps;
                         }
                     }
                     if (proc != null) {
