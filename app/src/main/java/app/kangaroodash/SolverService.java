@@ -365,8 +365,18 @@ public class SolverService extends Service {
     void stopAll() {
         running = false;
         status = "നിർത്തി";
+
+        // onDestroy/onStartCommand run on the main thread. Do not wait here for
+        // native process termination; the worker's finally block performs bounded cleanup.
         java.lang.Process current = proc;
-        terminateProcess(current);
+        if (current != null && current.isAlive()) {
+            try {
+                current.destroy();
+            } catch (RuntimeException ignored) {
+                // The worker will still attempt forced termination during cleanup.
+            }
+        }
+
         Thread currentWorker = worker;
         if (currentWorker != null) currentWorker.interrupt();
         releaseWakeLock();
