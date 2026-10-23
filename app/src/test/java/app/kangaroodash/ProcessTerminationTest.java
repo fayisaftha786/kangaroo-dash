@@ -87,6 +87,7 @@ public class ProcessTerminationTest {
         int destroyCalls;
         int forceCalls;
         boolean interruptOnFirstTimedWait;
+        boolean interruptOnEveryTimedWait;
         int timedWaitCalls;
 
         FakeProcess(boolean exitsGracefully, boolean exitsForcibly) {
