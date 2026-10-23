@@ -343,9 +343,9 @@ public class MainActivity extends Activity {
                         .add(java.math.BigInteger.valueOf(7)).mod(SECP256K1_P);
                 java.math.BigInteger y = rhs.modPow(SECP256K1_SQRT_EXP, SECP256K1_P);
                 if (!y.multiply(y).mod(SECP256K1_P).equals(rhs)) return false;
-                boolean odd = y.testBit(0);
-                return odd == "03".equalsIgnoreCase(prefix)
-                        || y.signum() == 0 && "02".equalsIgnoreCase(prefix);
+                // The other root is (p - y), which has opposite parity for nonzero y.
+                // Either prefix is valid when a curve point exists; the prefix selects the root.
+                return true;
             }
             if (value.length() != 130 || !"04".equalsIgnoreCase(value.substring(0, 2))) {
                 return false;
