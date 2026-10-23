@@ -130,49 +130,81 @@ public class SolverService extends Service {
                     proc = pb.start();
                     appendLog(logF, "--- Solver process started: " + new java.util.Date() + " ---");
 
-                    try (BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
-                        String line;
-                        while (running && (line = reader.readLine()) != null) {
-                            if (line.contains("Verification: SUCCESS")) processVerified = true;
-                            if (line.contains("Verification FAILED")
-                                    || line.contains("Collision candidate failed verification")) {
-                                processVerified = false;
+                    final String eof = "\u0000KANGAROO_EOF";
+                    final BlockingQueue<String> outputLines = new LinkedBlockingQueue<>();
+                    final Process currentProcess = proc;
+                    Thread outputReader = new Thread(() -> {
+                        try (BufferedReader reader = new BufferedReader(
+                                new InputStreamReader(currentProcess.getInputStream(), StandardCharsets.UTF_8))) {
+                            String outputLine;
+                            while ((outputLine = reader.readLine()) != null) {
+                                outputLines.put(outputLine);
                             }
-                            line = line.replaceAll("\u001B\\[[0-9;]*m", "");
-                            if (!line.trim().isEmpty()) status = "Engine: " + line.trim();
-                            appendLog(logF, line);
+                        } catch (Exception readerError) {
+                            try {
+                                outputLines.put("Engine output reader error: " + safeMessage(
+                                        readerError instanceof Exception ? (Exception) readerError
+                                                : new Exception(readerError)));
+                            } catch (InterruptedException ignored) {
+                                Thread.currentThread().interrupt();
+                            }
+                        } finally {
+                            try {
+                                outputLines.put(eof);
+                            } catch (InterruptedException ignored) {
+                                Thread.currentThread().interrupt();
+                            }
+                        }
+                    }, "kangaroo-output-reader");
+                    outputReader.setDaemon(true);
+                    outputReader.start();
 
-                            Matcher m = OPS.matcher(line);
-                            if (m.find()) {
-                                long now = SystemClock.elapsedRealtime();
-                                lastTelemetryAtMs = now;
-                                long currentOps;
-                                try {
-                                    currentOps = Long.parseLong(m.group(1));
-                                } catch (NumberFormatException ex) {
-                                    currentOps = -1;
-                                }
-                                elapsedMs = Math.max(0, now - sessionStartMs);
-                                if (currentOps >= 0 && previousOps >= 0
-                                        && currentOps >= previousOps && now > previousOpsAt) {
-                                    double rate = (currentOps - previousOps) * 1000.0
-                                            / (now - previousOpsAt);
-                                    speed = String.format(java.util.Locale.US, "%.2f M ops/s", rate);
-                                } else {
-                                    speed = "—";
-                                }
-                                previousOps = currentOps;
-                                previousOpsAt = now;
-                                ops = m.group(1) + "M";
-                                dps = m.group(2);
-                                temp = batt();
-                                if (temp >= 45f && proc != null) {
-                                    status = "High temperature; stopping engine temporarily";
-                                    proc.destroy();
-                                    break;
-                                }
+                    boolean outputEnded = false;
+                    while (running && !Thread.currentThread().isInterrupted() && !outputEnded) {
+                        String line = outputLines.poll(5, TimeUnit.SECONDS);
+                        temp = batt();
+                        if (temp >= 45f) {
+                            status = "High temperature; stopping engine temporarily";
+                            if (proc != null) proc.destroy();
+                            break;
+                        }
+                        if (line == null) continue;
+                        if (line.equals(eof)) {
+                            outputEnded = true;
+                            continue;
+                        }
+                        if (line.contains("Verification: SUCCESS")) processVerified = true;
+                        if (line.contains("Verification FAILED")
+                                || line.contains("Collision candidate failed verification")) {
+                            processVerified = false;
+                        }
+                        line = line.replaceAll("\u001B\\[[0-9;]*m", "");
+                        if (!line.trim().isEmpty()) status = "Engine: " + line.trim();
+                        appendLog(logF, line);
+
+                        Matcher m = OPS.matcher(line);
+                        if (m.find()) {
+                            long now = SystemClock.elapsedRealtime();
+                            lastTelemetryAtMs = now;
+                            long currentOps;
+                            try {
+                                currentOps = Long.parseLong(m.group(1));
+                            } catch (NumberFormatException ex) {
+                                currentOps = -1;
                             }
+                            elapsedMs = Math.max(0, now - sessionStartMs);
+                            if (currentOps >= 0 && previousOps >= 0
+                                    && currentOps >= previousOps && now > previousOpsAt) {
+                                double rate = (currentOps - previousOps) * 1000.0
+                                        / (now - previousOpsAt);
+                                speed = String.format(java.util.Locale.US, "%.2f M ops/s", rate);
+                            } else {
+                                speed = "—";
+                            }
+                            previousOps = currentOps;
+                            previousOpsAt = now;
+                            ops = m.group(1) + "M";
+                            dps = m.group(2);
                         }
                     }
                     if (proc != null) {
