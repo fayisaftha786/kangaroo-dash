@@ -170,7 +170,7 @@ public class SolverService extends Service {
                         temp = batt();
                         if (temp >= 45f) {
                             status = "High temperature; stopping engine temporarily";
-                            if (proc != null) proc.destroy();
+                            if (proc != null) proc.destroyForcibly();
                             break;
                         }
                         if (output == null) continue;
@@ -229,7 +229,7 @@ public class SolverService extends Service {
                     if (outputReader != null) outputReader.interrupt();
                     java.lang.Process current = proc;
                     proc = null;
-                    if (current != null && current.isAlive()) current.destroy();
+                    if (current != null && current.isAlive()) current.destroyForcibly();
                 }
 
                 if (foundF.exists() && foundF.length() > 0) {
@@ -264,7 +264,7 @@ public class SolverService extends Service {
                     ? Math.max(elapsedMs, SystemClock.elapsedRealtime() - sessionStartMs) : elapsedMs;
             java.lang.Process current = proc;
             proc = null;
-            if (current != null && current.isAlive()) current.destroy();
+            if (current != null && current.isAlive()) current.destroyForcibly();
             releaseWakeLock();
             try {
                 stopForeground(true);
@@ -289,7 +289,7 @@ public class SolverService extends Service {
         running = false;
         status = "നിർത്തി";
         java.lang.Process current = proc;
-        if (current != null) current.destroy();
+        if (current != null) current.destroyForcibly();
         Thread currentWorker = worker;
         if (currentWorker != null) currentWorker.interrupt();
         releaseWakeLock();
