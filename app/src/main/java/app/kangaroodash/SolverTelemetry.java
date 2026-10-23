@@ -13,11 +13,20 @@ final class SolverTelemetry {
 
     /**
      * Returns a matcher positioned at the first telemetry match, or null when
-     * the line is not a recognized progress record.
+     * the line is not a recognized progress record or counters overflow long.
      */
     static Matcher find(String line) {
         if (line == null) return null;
         Matcher matcher = OPS.matcher(line);
-        return matcher.find() ? matcher : null;
+        while (matcher.find()) {
+            try {
+                Long.parseLong(matcher.group(1));
+                Long.parseLong(matcher.group(2));
+                return matcher;
+            } catch (NumberFormatException ignored) {
+                // Ignore this malformed record and search for another valid one.
+            }
+        }
+        return null;
     }
 }
