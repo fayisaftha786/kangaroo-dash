@@ -486,7 +486,9 @@ public class SolverService extends Service {
             }
         }
 
-        Thread currentWorker = worker;
+        // The worker may belong to a previous Service instance after Android recreates it.
+        // Use the process-wide worker reference so Stop still reaches that active session.
+        Thread currentWorker = activeWorker;
         if (currentWorker != null && currentWorker.isAlive()) {
             currentWorker.interrupt();
             // Keep the CPU awake while the worker reaps the native process and
