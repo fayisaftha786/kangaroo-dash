@@ -58,9 +58,8 @@ public class SolverService extends Service {
             Thread previousWorker = worker;
             if (previousWorker != null && previousWorker.isAlive()) {
                 status = "Previous session is still shutting down; try starting again shortly";
-                // This request promoted the service, but the existing worker owns cleanup.
-                // Remove the temporary foreground notification without stopping that worker.
-                stopForeground(true);
+                // The existing worker still owns process/wake-lock/foreground cleanup.
+                // Keep the service foreground until that worker's finally block completes.
                 return START_NOT_STICKY;
             }
             wl = ((PowerManager) getSystemService(POWER_SERVICE))
