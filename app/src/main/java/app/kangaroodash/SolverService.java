@@ -23,7 +23,7 @@ public class SolverService extends Service {
     volatile java.lang.Process proc;
     volatile Thread worker;
     private PowerManager.WakeLock wl;
-    static final Pattern OPS = Pattern.compile("Ops: (\\d+)M \\| DPs: (\\d+)");
+
 
     @Override public IBinder onBind(Intent i) { return null; }
 
@@ -34,6 +34,7 @@ public class SolverService extends Service {
             return START_NOT_STICKY;
         }
         if (in == null || running) return START_NOT_STICKY;
+
         try {
             NotificationChannel ch = new NotificationChannel("k", "Kangaroo", NotificationManager.IMPORTANCE_LOW);
             getSystemService(NotificationManager.class).createNotificationChannel(ch);
@@ -45,13 +46,27 @@ public class SolverService extends Service {
             } else {
                 startForeground(1, n);
             }
+            // A startForegroundService request must promote the service before we return.
+            // Check for a worker still in its cleanup phase only after foreground promotion.
+            Thread previousWorker = worker;
+            if (previousWorker != null && previousWorker.isAlive()) {
+                status = "Previous session is still shutting down; try starting again shortly";
+                // This request promoted the service, but the existing worker owns cleanup.
+                // Remove the temporary foreground notification without stopping that worker.
+                stopForeground(true);
+                return START_NOT_STICKY;
+            }
             wl = ((PowerManager) getSystemService(POWER_SERVICE))
                     .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "k:run");
             wl.acquire();
         } catch (RuntimeException e) {
             status = "Service start failed: " + safeMessage(e);
             releaseWakeLock();
-            stopForeground(true);
+            try {
+                stopForeground(true);
+            } catch (RuntimeException ignored) {
+                // Preserve the original startup failure and still request service shutdown.
+            }
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -186,7 +201,7 @@ public class SolverService extends Service {
                         temp = batt();
                         if (temp >= 45f) {
                             status = "High temperature; stopping engine temporarily";
-                            if (proc != null) proc.destroy();
+                            terminateProcess(proc);
                             break;
                         }
                         long progressCheckAt = SystemClock.elapsedRealtime();
@@ -210,8 +225,8 @@ public class SolverService extends Service {
                         if (!line.trim().isEmpty() && !staleWarningLogged) status = "Engine: " + line.trim();
                         appendLog(logF, line);
 
-                        Matcher m = OPS.matcher(line);
-                        if (m.find()) {
+                        Matcher m = SolverTelemetry.find(line);
+                        if (m != null) {
                             long now = SystemClock.elapsedRealtime();
                             lastTelemetryAtMs = now;
                             long currentOps;
@@ -257,10 +272,17 @@ public class SolverService extends Service {
                     appendLog(logF, "Engine exception: " + e.getClass().getSimpleName()
                             + ": " + safeMessage(e));
                 } finally {
-                    if (outputReader != null) outputReader.interrupt();
                     java.lang.Process current = proc;
                     proc = null;
                     terminateProcess(current);
+                    if (outputReader != null) {
+                        outputReader.interrupt();
+                        try {
+                            outputReader.join(250);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
                 }
 
                 if (foundF.exists() && foundF.length() > 0) {
