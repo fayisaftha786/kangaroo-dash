@@ -23,7 +23,7 @@ public class SolverService extends Service {
     volatile java.lang.Process proc;
     volatile Thread worker;
     private PowerManager.WakeLock wl;
-    static final Pattern OPS = Pattern.compile("Ops: (\\d+)M \\| DPs: (\\d+)");
+
 
     @Override public IBinder onBind(Intent i) { return null; }
 
@@ -210,8 +210,8 @@ public class SolverService extends Service {
                         if (!line.trim().isEmpty() && !staleWarningLogged) status = "Engine: " + line.trim();
                         appendLog(logF, line);
 
-                        Matcher m = OPS.matcher(line);
-                        if (m.find()) {
+                        Matcher m = SolverTelemetry.find(line);
+                        if (m != null) {
                             long now = SystemClock.elapsedRealtime();
                             lastTelemetryAtMs = now;
                             long currentOps;
