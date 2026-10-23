@@ -13,6 +13,11 @@ import java.util.regex.*;
 
 public class SolverService extends Service {
     static volatile boolean running = false;
+    private static volatile boolean workerBusy = false;
+
+    static boolean isBusy() {
+        return running || workerBusy;
+    }
     static volatile String status = "നിർത്തി", ops = "-", dps = "-", found = "";
     static volatile int restarts = 0;
     static volatile long sessionStartMs = 0, elapsedMs = 0;
@@ -74,6 +79,7 @@ public class SolverService extends Service {
         final String[] a = { in.getStringExtra("pub"), in.getStringExtra("start"),
                 in.getStringExtra("range"), in.getStringExtra("dp"), in.getStringExtra("k") };
         running = true;
+        workerBusy = true;
         restarts = 0;
         found = "";
         resultVerified = false;
@@ -322,6 +328,7 @@ public class SolverService extends Service {
             try {
                 stopForeground(true);
             } catch (RuntimeException ignored) {}
+            workerBusy = false;
             stopSelf();
         }
     }
