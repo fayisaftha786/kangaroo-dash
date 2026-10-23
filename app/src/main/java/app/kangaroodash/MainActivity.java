@@ -264,8 +264,10 @@ public class MainActivity extends Activity {
     }
 
     private void startSolver() {
-        if (SolverService.running) {
-            statusText.setText("Engine is already running");
+        if (SolverService.isBusy()) {
+            statusText.setText(SolverService.running
+                    ? "Engine is already running"
+                    : "Previous session is still shutting down; try again shortly");
             return;
         }
         String pubValue = pub.getText().toString().trim();
@@ -377,9 +379,10 @@ public class MainActivity extends Activity {
     private void refresh() {
         statusText.setText(SolverService.status);
         boolean active = SolverService.running;
-        if (startButton != null) startButton.setEnabled(!active);
+        boolean busy = SolverService.isBusy();
+        if (startButton != null) startButton.setEnabled(!busy);
         if (stopButton != null) stopButton.setEnabled(active);
-        liveBadge.setText(active ? "● RUNNING" : "● STOPPED");
+        liveBadge.setText(active ? "● RUNNING" : busy ? "● STOPPING" : "● STOPPED");
         liveBadge.setTextColor(active ? TEAL : MUTED);
         liveBadge.setBackground(shape(active ? 0xFF12362F : 0xFF252C3A, 30));
         opsText.setText(SolverService.ops);
