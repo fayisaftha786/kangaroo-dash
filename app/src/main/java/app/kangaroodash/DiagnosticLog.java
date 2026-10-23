@@ -25,14 +25,18 @@ final class DiagnosticLog {
             safeMessage = safeMessage.substring(0, maxChars);
         }
         byte[] bytes = (safeMessage + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+        File backup = new File(file.getParentFile(), file.getName() + BACKUP_SUFFIX);
+        // Remove oversized files left by an older build so both retained
+        // log files obey the same cap.
+        if (backup.exists() && backup.length() > MAX_BYTES && !backup.delete()) {
+            throw new IOException("Could not remove oversized diagnostic backup");
+        }
         if (file.exists() && file.length() > MAX_BYTES) {
-            // A log created by an older/unbounded build may already exceed
-            // the cap. Do not preserve that oversized file as the backup.
+            // Do not preserve an oversized legacy log as the backup.
             if (!file.delete()) {
                 throw new IOException("Could not remove oversized diagnostic log");
             }
         } else if (file.exists() && file.length() + bytes.length > MAX_BYTES) {
-            File backup = new File(file.getParentFile(), file.getName() + BACKUP_SUFFIX);
             if (backup.exists() && !backup.delete()) {
                 throw new IOException("Could not remove old log backup");
             }
