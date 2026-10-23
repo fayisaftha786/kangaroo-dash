@@ -39,6 +39,14 @@ public class ProcessTerminationTest {
         assertTrue(process.isAlive());
     }
 
+    @Test public void forceTerminatesWhenGracefulDestroyThrows() {
+        FakeProcess process = new FakeProcess(true, true);
+        process.throwOnDestroy = true;
+        assertFalse(SolverService.terminateProcess(process));
+        assertEquals(1, process.destroyCalls);
+        assertEquals(1, process.forceCalls);
+    }
+
     @Test public void forceTerminatesAndRestoresInterruptWhenWaitIsInterrupted() {
         FakeProcess process = new FakeProcess(false, true);
         process.interruptOnFirstTimedWait = true;
