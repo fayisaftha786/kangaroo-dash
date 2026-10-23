@@ -215,7 +215,7 @@ public class SolverService extends Service {
                                 || line.contains("Collision candidate failed verification")) {
                             processVerified = false;
                         }
-                        line = line.replaceAll("\u001B\\\\[[0-9;]*m", "");
+                        line = line.replaceAll("\u001B\\[[0-9;]*m", "");
                         if (!line.trim().isEmpty() && !staleWarningLogged) status = "Engine: " + line.trim();
                         appendLog(logF, line);
 
