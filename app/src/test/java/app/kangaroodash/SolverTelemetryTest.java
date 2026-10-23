@@ -19,6 +19,22 @@ public class SolverTelemetryTest {
         assertEquals("9", matcher.group(2));
     }
 
+
+    @Test public void skipsOverflowingRecordAndFindsLaterValidRecord() {
+        Matcher matcher = SolverTelemetry.find(
+                "Ops: 9223372036854775808M | DPs: 1; retry Ops: 8M | DPs: 13");
+        assertNotNull(matcher);
+        assertEquals("8", matcher.group(1));
+        assertEquals("13", matcher.group(2));
+    }
+
+    @Test public void rejectsNumericTokensWithSignsOrDecimalSuffixes() {
+        assertNull(SolverTelemetry.find("Ops: +123M | DPs: 456"));
+        assertNull(SolverTelemetry.find("Ops: 123.0M | DPs: 456"));
+        assertNull(SolverTelemetry.find("Ops: 123M | DPs: +456"));
+        assertNull(SolverTelemetry.find("Ops: 123M | DPs: 456.0"));
+    }
+
     @Test public void rejectsMalformedOrUnrelatedLines() {
         assertNull(SolverTelemetry.find(null));
         assertNull(SolverTelemetry.find(""));
