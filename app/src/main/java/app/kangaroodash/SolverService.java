@@ -20,7 +20,7 @@ public class SolverService extends Service {
     static volatile boolean resultVerified = false;
     static volatile long lastTelemetryAtMs = 0;
     static volatile float temp = 0;
-    volatile Process proc;
+    volatile java.lang.Process proc;
     volatile Thread worker;
     private PowerManager.WakeLock wl;
     static final Pattern OPS = Pattern.compile("Ops: (\\d+)M \\| DPs: (\\d+)");
@@ -139,7 +139,7 @@ public class SolverService extends Service {
 
                     final Object eof = new Object();
                     final BlockingQueue<Object> outputLines = new LinkedBlockingQueue<>(1024);
-                    final Process currentProcess = proc;
+                    final java.lang.Process currentProcess = proc;
                     outputReader = new Thread(() -> {
                         try (BufferedReader reader = new BufferedReader(
                                 new InputStreamReader(currentProcess.getInputStream(), StandardCharsets.UTF_8))) {
@@ -227,7 +227,7 @@ public class SolverService extends Service {
                             + ": " + safeMessage(e));
                 } finally {
                     if (outputReader != null) outputReader.interrupt();
-                    Process current = proc;
+                    java.lang.Process current = proc;
                     proc = null;
                     if (current != null && current.isAlive()) current.destroy();
                 }
@@ -262,7 +262,7 @@ public class SolverService extends Service {
             running = false;
             elapsedMs = sessionStartMs > 0
                     ? Math.max(elapsedMs, SystemClock.elapsedRealtime() - sessionStartMs) : elapsedMs;
-            Process current = proc;
+            java.lang.Process current = proc;
             proc = null;
             if (current != null && current.isAlive()) current.destroy();
             releaseWakeLock();
@@ -288,7 +288,7 @@ public class SolverService extends Service {
     void stopAll() {
         running = false;
         status = "നിർത്തി";
-        Process current = proc;
+        java.lang.Process current = proc;
         if (current != null) current.destroy();
         Thread currentWorker = worker;
         if (currentWorker != null) currentWorker.interrupt();
