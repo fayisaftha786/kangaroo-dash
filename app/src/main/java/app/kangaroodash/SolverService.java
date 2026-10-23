@@ -109,7 +109,10 @@ public class SolverService extends Service {
 
         try {
             if (foundF.exists() && !foundF.delete()) {
-                appendLog(logF, "Warning: stale found.txt could not be deleted");
+                status = "Cannot clear stale result file; engine not started";
+                appendLog(logF, status);
+                running = false;
+                return;
             }
             while (running && !Thread.currentThread().isInterrupted()) {
                 boolean processVerified = false;
