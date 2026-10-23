@@ -114,6 +114,7 @@ public class SolverService extends Service {
             while (running && !Thread.currentThread().isInterrupted()) {
                 boolean processVerified = false;
                 int exitCode = Integer.MIN_VALUE;
+                Thread outputReader = null;
                 temp = batt();
                 if (temp >= 45f) {
                     status = "തണുക്കുന്നു " + temp + "°C";
@@ -136,7 +137,7 @@ public class SolverService extends Service {
                     final Object eof = new Object();
                     final BlockingQueue<Object> outputLines = new LinkedBlockingQueue<>(1024);
                     final Process currentProcess = proc;
-                    Thread outputReader = new Thread(() -> {
+                    outputReader = new Thread(() -> {
                         try (BufferedReader reader = new BufferedReader(
                                 new InputStreamReader(currentProcess.getInputStream(), StandardCharsets.UTF_8))) {
                             String outputLine;
@@ -222,6 +223,7 @@ public class SolverService extends Service {
                     appendLog(logF, "Engine exception: " + e.getClass().getSimpleName()
                             + ": " + safeMessage(e));
                 } finally {
+                    if (outputReader != null) outputReader.interrupt();
                     Process current = proc;
                     proc = null;
                     if (current != null && current.isAlive()) current.destroy();
