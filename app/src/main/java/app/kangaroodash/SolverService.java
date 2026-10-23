@@ -5,6 +5,7 @@ import android.content.*;
 import android.content.pm.ServiceInfo;
 import android.os.*;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.*;
 
 public class SolverService extends Service {
