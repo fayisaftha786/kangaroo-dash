@@ -15,10 +15,14 @@ public class SolverService extends Service {
     static volatile boolean running = false;
     private static volatile boolean workerBusy = false;
     private static volatile Thread activeWorker;
+    // Fail closed if the OS still reports a native solver process alive after
+    // bounded termination attempts. Do not permit a second engine to overlap it.
+    private static volatile boolean nativeProcessCleanupFailed = false;
 
     static boolean isBusy() {
         Thread current = activeWorker;
-        return running || workerBusy || (current != null && current.isAlive());
+        return running || workerBusy || nativeProcessCleanupFailed
+                || (current != null && current.isAlive());
     }
     static volatile String status = "നിർത്തി", ops = "-", dps = "-", found = "";
     static volatile int restarts = 0;
@@ -302,8 +306,9 @@ public class SolverService extends Service {
                             terminateProcess(completedProcess);
                         }
                         if (completedProcess.isAlive()) {
-                            // Do not enter the restart loop while a previous native engine
-                            // may still be alive; surface the failure and let final cleanup run.
+                            // Keep the safety latch set even after this worker exits:
+                            // isBusy() must prevent a new engine from overlapping a stuck process.
+                            nativeProcessCleanupFailed = true;
                             status = "Native process is still alive after forced termination; automatic restart disabled";
                             appendLog(logF, status);
                             running = false;
