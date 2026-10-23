@@ -77,6 +77,7 @@ public class SolverService extends Service {
                     if (line.contains("Verification: SUCCESS")) processVerified = true;
                     if (line.contains("Verification FAILED") || line.contains("Collision candidate failed verification")) processVerified = false;
                     line = line.replaceAll("\u001B\\[[0-9;]*m", "");
+                    if (!line.trim().isEmpty()) status = "Engine: " + line.trim();
                     try (FileWriter log = new FileWriter(logF, true)) { log.write(line + "\n"); } catch (Exception ignored) {}
                     Matcher m = OPS.matcher(line);
                     if (m.find()) {
