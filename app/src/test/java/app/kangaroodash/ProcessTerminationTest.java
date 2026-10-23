@@ -138,6 +138,7 @@ public class ProcessTerminationTest {
 
         @Override public void destroy() {
             destroyCalls++;
+            if (throwOnDestroy) throw new IllegalStateException("simulated graceful destroy failure");
             if (exitsGracefully) alive = false;
         }
 
