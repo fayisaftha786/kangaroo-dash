@@ -350,7 +350,11 @@ public class SolverService extends Service {
                 } finally {
                     java.lang.Process current = proc;
                     proc = null;
-                    terminateProcess(current);
+                    if (terminateProcess(current)) {
+                        markNativeProcessCleanupFailed(current);
+                        status = "Native process remains alive after loop cleanup; automatic restart disabled";
+                        appendLog(logF, status);
+                    }
                     if (outputReader != null) {
                         outputReader.interrupt();
                         try {
@@ -394,7 +398,9 @@ public class SolverService extends Service {
             java.lang.Process current = proc;
             proc = null;
             if (terminateProcess(current)) {
-                appendLog(logF, "Cleanup warning: native process remains alive after bounded termination attempts");
+                markNativeProcessCleanupFailed(current);
+                status = "Native process remains alive after worker cleanup; automatic restart disabled";
+                appendLog(logF, status);
             }
             releaseWakeLock();
             try {
