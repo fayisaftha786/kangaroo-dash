@@ -6,6 +6,21 @@ Automated CI passing is not proof that the native engine works on a physical pho
 - Record device model, Android version, app commit SHA, APK SHA-256, and available storage.
 - Use a synthetic/test-only fixture and a harmless bounded run. Do not use a real wallet secret or private key.
 - Capture Android logcat and the app's `scan.log` before and after each case.
+- Note the exact time for START and STOP so logs can be correlated.
+
+### Capture logs with ADB (optional)
+With USB debugging enabled and the phone connected to a trusted computer:
+
+```sh
+adb devices
+adb logcat -c
+# Reproduce one test case on the phone, then:
+adb logcat -d -v threadtime > device-logcat.txt
+```
+
+If you have access to the app's private files through a debuggable build, capture `scan.log` using Android Studio's Device Explorer. Otherwise, use an in-app export if the app provides one. Do not assume private app files are accessible with `adb pull` on a non-rooted production device.
+
+Before attaching logs to an issue or PR, inspect and redact any secrets, personal identifiers, tokens, local paths, and unrelated app output. Keep an unredacted copy only locally and share the minimum relevant time window. Never include a real wallet private key, seed phrase, or secret.
 
 ## App and service lifecycle
 - [ ] App opens without a crash and all fields remain usable after rotating/reopening if rotation is supported.
