@@ -15,13 +15,28 @@ final class DiagnosticLog {
     static synchronized void append(File file, String message) throws IOException {
         if (file == null) throw new IOException("Log file is unavailable");
         String safeMessage = message == null ? "" : message;
-        // Bound even a single unexpectedly huge native output line.
-        if (safeMessage.length() > MAX_BYTES / 4) {
-            safeMessage = safeMessage.substring(0, (int) (MAX_BYTES / 4 - 1));
+        // Bound even a single unexpectedly huge native output line. Avoid
+        // cutting a UTF-16 surrogate pair in half before UTF-8 encoding.
+        int maxChars = (int) (MAX_BYTES / 4 - 1);
+        if (safeMessage.length() > maxChars) {
+            if (Character.isHighSurrogate(safeMessage.charAt(maxChars - 1))) {
+                maxChars--;
+            }
+            safeMessage = safeMessage.substring(0, maxChars);
         }
         byte[] bytes = (safeMessage + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
-        if (file.exists() && file.length() + bytes.length > MAX_BYTES) {
-            File backup = new File(file.getParentFile(), file.getName() + BACKUP_SUFFIX);
+        File backup = new File(file.getParentFile(), file.getName() + BACKUP_SUFFIX);
+        // Remove oversized files left by an older build so both retained
+        // log files obey the same cap.
+        if (backup.exists() && backup.length() > MAX_BYTES && !backup.delete()) {
+            throw new IOException("Could not remove oversized diagnostic backup");
+        }
+        if (file.exists() && file.length() > MAX_BYTES) {
+            // Do not preserve an oversized legacy log as the backup.
+            if (!file.delete()) {
+                throw new IOException("Could not remove oversized diagnostic log");
+            }
+        } else if (file.exists() && file.length() + bytes.length > MAX_BYTES) {
             if (backup.exists() && !backup.delete()) {
                 throw new IOException("Could not remove old log backup");
             }

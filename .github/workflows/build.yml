@@ -29,8 +29,20 @@ jobs:
       - name: Run tests, lint and build
         run: ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon
 
-      - name: Upload APK
+      - name: Generate APK SHA-256 checksum
+        run: |
+          cd app/build/outputs/apk/debug
+          sha256sum app-debug.apk > app-debug.apk.sha256
+
+      - name: Verify APK SHA-256 checksum
+        run: |
+          cd app/build/outputs/apk/debug
+          sha256sum --check app-debug.apk.sha256
+
+      - name: Upload APK and checksum
         uses: actions/upload-artifact@v7
         with:
           name: kangaroo-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/debug/app-debug.apk.sha256

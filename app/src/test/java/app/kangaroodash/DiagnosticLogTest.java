@@ -23,6 +23,7 @@ public class DiagnosticLogTest {
                     .contains("new-session"));
             assertTrue(new String(Files.readAllBytes(backup.toPath()), StandardCharsets.UTF_8)
                     .contains("xxx"));
+            assertTrue("backup must remain bounded", backup.length() <= DiagnosticLog.MAX_BYTES);
         } finally {
             File backup = new File(dir, "scan.log.1");
             if (backup.exists()) backup.delete();
@@ -38,6 +39,89 @@ public class DiagnosticLogTest {
             DiagnosticLog.append(log, "താപനില ഉയർന്നിരിക്കുന്നു");
             String contents = new String(Files.readAllBytes(log.toPath()), StandardCharsets.UTF_8);
             assertTrue(contents.contains("താപനില ഉയർന്നിരിക്കുന്നു"));
+        } finally {
+            if (log.exists()) log.delete();
+            dir.delete();
+        }
+    }
+
+    @Test public void truncatesOversizedSingleLineToKeepLogBounded() throws Exception {
+        File dir = Files.createTempDirectory("kangaroo-log-large-line").toFile();
+        File log = new File(dir, "scan.log");
+        try {
+            StringBuilder huge = new StringBuilder();
+            for (int i = 0; i < (int) DiagnosticLog.MAX_BYTES; i++) huge.append('z');
+            DiagnosticLog.append(log, huge.toString());
+
+            assertTrue("a single line must not exceed the log limit", log.length() <= DiagnosticLog.MAX_BYTES);
+            assertTrue("line should be truncated", log.length() < huge.length());
+        } finally {
+            if (log.exists()) log.delete();
+            dir.delete();
+        }
+    }
+
+    @Test public void truncatesOversizedEmojiLineWithoutSplittingSurrogatePair() throws Exception {
+        File dir = Files.createTempDirectory("kangaroo-log-emoji").toFile();
+        File log = new File(dir, "scan.log");
+        try {
+            StringBuilder huge = new StringBuilder();
+            for (int i = 0; i < (int) DiagnosticLog.MAX_BYTES; i++) huge.append("😀");
+            DiagnosticLog.append(log, huge.toString());
+
+            String contents = new String(Files.readAllBytes(log.toPath()), StandardCharsets.UTF_8);
+            assertTrue("UTF-8 output must stay within the byte limit", log.length() <= DiagnosticLog.MAX_BYTES);
+            assertTrue("truncated text should end on a complete emoji", contents.endsWith("😀" + System.lineSeparator()));
+        } finally {
+            if (log.exists()) log.delete();
+            dir.delete();
+        }
+    }
+
+    @Test public void discardsOversizedLegacyLogInsteadOfRotatingIt() throws Exception {
+        File dir = Files.createTempDirectory("kangaroo-log-legacy").toFile();
+        File log = new File(dir, "scan.log");
+        File backup = new File(dir, "scan.log.1");
+        try {
+            byte[] oversized = new byte[(int) DiagnosticLog.MAX_BYTES + 1];
+            Files.write(log.toPath(), oversized);
+
+            DiagnosticLog.append(log, "fresh-session");
+
+            assertTrue("fresh log should be bounded", log.length() <= DiagnosticLog.MAX_BYTES);
+            assertTrue("oversized legacy log must not become an oversized backup", !backup.exists());
+            assertTrue(new String(Files.readAllBytes(log.toPath()), StandardCharsets.UTF_8)
+                    .contains("fresh-session"));
+        } finally {
+            if (backup.exists()) backup.delete();
+            if (log.exists()) log.delete();
+            dir.delete();
+        }
+    }
+
+    @Test public void removesOversizedLegacyBackup() throws Exception {
+        File dir = Files.createTempDirectory("kangaroo-log-old-backup").toFile();
+        File log = new File(dir, "scan.log");
+        File backup = new File(dir, "scan.log.1");
+        try {
+            Files.write(backup.toPath(), new byte[(int) DiagnosticLog.MAX_BYTES + 1]);
+            DiagnosticLog.append(log, "fresh-session");
+
+            assertTrue("oversized backup should be discarded", !backup.exists());
+            assertTrue("new log should remain bounded", log.length() <= DiagnosticLog.MAX_BYTES);
+        } finally {
+            if (backup.exists()) backup.delete();
+            if (log.exists()) log.delete();
+            dir.delete();
+        }
+    }
+
+    @Test public void nullMessageIsWrittenAsEmptyLine() throws Exception {
+        File dir = Files.createTempDirectory("kangaroo-log-null").toFile();
+        File log = new File(dir, "scan.log");
+        try {
+            DiagnosticLog.append(log, null);
+            assertEquals(System.lineSeparator().getBytes(StandardCharsets.UTF_8).length, log.length());
         } finally {
             if (log.exists()) log.delete();
             dir.delete();

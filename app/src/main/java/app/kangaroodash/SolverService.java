@@ -108,6 +108,12 @@ public class SolverService extends Service {
         long previousOps = -1, previousOpsAt = 0;
 
         try {
+            File engine = new File(bin);
+            if (!engine.isFile() || !engine.canExecute()) {
+                status = "Native engine missing or not executable: " + engine.getName();
+                appendLog(logF, status + " (path=" + engine.getAbsolutePath() + ")");
+                return;
+            }
             if (foundF.exists() && !foundF.delete()) {
                 status = "Cannot clear stale result file; engine not started";
                 appendLog(logF, status);
@@ -133,9 +139,19 @@ public class SolverService extends Service {
                     pb.environment().put("KANGAROO_DP_FILE",
                             new File(dir, "dp.json").getAbsolutePath());
                     pb.redirectErrorStream(true);
+                    appendLog(logF, "DP file before start: " + fileState(new File(dir, "dp.json")));
+                    if (!running || Thread.currentThread().isInterrupted()) break;
                     status = "ഓടുന്നു";
                     proc = pb.start();
+                    if (!running || Thread.currentThread().isInterrupted()) {
+                        terminateProcess(proc);
+                        break;
+                    }
                     appendLog(logF, "--- Solver process started: " + new java.util.Date() + " ---");
+                    long lastProgressAt = SystemClock.elapsedRealtime();
+                    String lastProgressDps = dps;
+                    long lastProgressOps = previousOps;
+                    boolean staleWarningLogged = false;
 
                     final Object eof = new Object();
                     final BlockingQueue<Object> outputLines = new LinkedBlockingQueue<>(1024);
@@ -173,6 +189,12 @@ public class SolverService extends Service {
                             if (proc != null) proc.destroy();
                             break;
                         }
+                        long progressCheckAt = SystemClock.elapsedRealtime();
+                        if (progressCheckAt - lastProgressAt >= 30000 && !staleWarningLogged) {
+                            status = "No telemetry/progress for 30s — engine may be stalled; not auto-stopped";
+                            appendLog(logF, status);
+                            staleWarningLogged = true;
+                        }
                         if (output == null) continue;
                         if (output == eof) {
                             outputEnded = true;
@@ -185,7 +207,7 @@ public class SolverService extends Service {
                             processVerified = false;
                         }
                         line = line.replaceAll("\u001B\\[[0-9;]*m", "");
-                        if (!line.trim().isEmpty()) status = "Engine: " + line.trim();
+                        if (!line.trim().isEmpty() && !staleWarningLogged) status = "Engine: " + line.trim();
                         appendLog(logF, line);
 
                         Matcher m = OPS.matcher(line);
@@ -200,22 +222,31 @@ public class SolverService extends Service {
                             }
                             elapsedMs = Math.max(0, now - sessionStartMs);
                             if (currentOps >= 0 && previousOps >= 0
-                                    && currentOps >= previousOps && now > previousOpsAt) {
+                                    && currentOps > previousOps && now > previousOpsAt) {
                                 double rate = (currentOps - previousOps) * 1000.0
                                         / (now - previousOpsAt);
                                 speed = String.format(java.util.Locale.US, "%.2f M ops/s", rate);
                             } else {
                                 speed = "—";
                             }
+                            String currentDpsText = m.group(2);
+                            if (currentOps != lastProgressOps || !currentDpsText.equals(lastProgressDps)) {
+                                lastProgressAt = now;
+                                lastProgressOps = currentOps;
+                                lastProgressDps = currentDpsText;
+                                staleWarningLogged = false;
+                            }
                             previousOps = currentOps;
                             previousOpsAt = now;
                             ops = m.group(1) + "M";
-                            dps = m.group(2);
+                            dps = currentDpsText;
+                            if (!staleWarningLogged) status = "Telemetry active: Ops " + ops + " | DPs " + dps;
                         }
                     }
                     if (proc != null) {
                         exitCode = proc.waitFor();
                         appendLog(logF, "Solver process exit code: " + exitCode);
+                        appendLog(logF, "DP file after exit: " + fileState(new File(dir, "dp.json")));
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -229,7 +260,7 @@ public class SolverService extends Service {
                     if (outputReader != null) outputReader.interrupt();
                     java.lang.Process current = proc;
                     proc = null;
-                    if (current != null && current.isAlive()) current.destroy();
+                    terminateProcess(current);
                 }
 
                 if (foundF.exists() && foundF.length() > 0) {
@@ -264,12 +295,36 @@ public class SolverService extends Service {
                     ? Math.max(elapsedMs, SystemClock.elapsedRealtime() - sessionStartMs) : elapsedMs;
             java.lang.Process current = proc;
             proc = null;
-            if (current != null && current.isAlive()) current.destroy();
+            terminateProcess(current);
             releaseWakeLock();
             try {
                 stopForeground(true);
             } catch (RuntimeException ignored) {}
             stopSelf();
+        }
+    }
+
+
+    private static String fileState(File file) {
+        if (!file.exists()) return "missing";
+        return "exists, bytes=" + file.length() + ", modifiedMs=" + file.lastModified();
+    }
+
+    private static void terminateProcess(java.lang.Process process) {
+        if (process == null || !process.isAlive()) return;
+        try {
+            process.destroy();
+            try {
+                if (!process.waitFor(500, TimeUnit.MILLISECONDS) && process.isAlive()) {
+                    process.destroyForcibly();
+                    process.waitFor(1500, TimeUnit.MILLISECONDS);
+                }
+            } catch (InterruptedException e) {
+                process.destroyForcibly();
+                Thread.currentThread().interrupt();
+            }
+        } catch (RuntimeException ignored) {
+            try { process.destroyForcibly(); } catch (RuntimeException ignoredAgain) {}
         }
     }
 
@@ -289,7 +344,7 @@ public class SolverService extends Service {
         running = false;
         status = "നിർത്തി";
         java.lang.Process current = proc;
-        if (current != null) current.destroy();
+        terminateProcess(current);
         Thread currentWorker = worker;
         if (currentWorker != null) currentWorker.interrupt();
         releaseWakeLock();

@@ -184,7 +184,7 @@ public class MainActivity extends Activity {
 
         LinearLayout config = card();
         pub = field(config, "PUBLIC KEY (HEX)", 
-            "031f6a332d3c5c4f2de2378c012f429cd109ba07d69690c6c701b6bb87860d6640");
+            "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798");
         start = field(config, "START (HEX)", 
             "80000000000000000000000000000000000");
         range = field(config, "RANGE (BITS)", "139");
@@ -232,9 +232,8 @@ public class MainActivity extends Activity {
 
         startButton.setOnClickListener(v -> startSolver());
         stopButton.setOnClickListener(v -> {
-            Intent i = new Intent(this, SolverService.class);
-            i.setAction("stop");
-            startService(i);
+            // Stopping an existing service does not attempt a new background service start.
+            stopService(new Intent(this, SolverService.class));
             statusText.setText("Stopping…");
         });
 
@@ -265,6 +264,10 @@ public class MainActivity extends Activity {
     }
 
     private void startSolver() {
+        if (SolverService.running) {
+            statusText.setText("Engine is already running");
+            return;
+        }
         String pubValue = pub.getText().toString().trim();
         String startValue = start.getText().toString().trim();
         String rangeValue = range.getText().toString().trim();
@@ -276,8 +279,8 @@ public class MainActivity extends Activity {
             statusText.setText("Please fill in every field");
             return;
         }
-        if (!isHex(pubValue) || (pubValue.length() != 66 && pubValue.length() != 130)) {
-            statusText.setText("Invalid public key: expected 33-byte or 65-byte hex");
+        if (!isPublicKeyHex(pubValue)) {
+            statusText.setText("Invalid secp256k1 public key: check encoding and curve point");
             return;
         }
         if (!isHex(startValue)) {
@@ -321,6 +324,44 @@ public class MainActivity extends Activity {
         }
     }
 
+    private static final java.math.BigInteger SECP256K1_P =
+            new java.math.BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16);
+    private static final java.math.BigInteger SECP256K1_SQRT_EXP =
+            SECP256K1_P.add(java.math.BigInteger.ONE).shiftRight(2);
+
+    static boolean isPublicKeyHex(String value) {
+        if (!isHex(value)) return false;
+        try {
+            if (value.length() == 66) {
+                String prefix = value.substring(0, 2);
+                if (!"02".equalsIgnoreCase(prefix) && !"03".equalsIgnoreCase(prefix)) {
+                    return false;
+                }
+                java.math.BigInteger x = new java.math.BigInteger(value.substring(2), 16);
+                if (x.compareTo(SECP256K1_P) >= 0) return false;
+                java.math.BigInteger rhs = x.modPow(java.math.BigInteger.valueOf(3), SECP256K1_P)
+                        .add(java.math.BigInteger.valueOf(7)).mod(SECP256K1_P);
+                java.math.BigInteger y = rhs.modPow(SECP256K1_SQRT_EXP, SECP256K1_P);
+                if (!y.multiply(y).mod(SECP256K1_P).equals(rhs)) return false;
+                // The other root is (p - y), which has opposite parity for nonzero y.
+                // Either prefix is valid when a curve point exists; the prefix selects the root.
+                return true;
+            }
+            if (value.length() != 130 || !"04".equalsIgnoreCase(value.substring(0, 2))) {
+                return false;
+            }
+            java.math.BigInteger x = new java.math.BigInteger(value.substring(2, 66), 16);
+            java.math.BigInteger y = new java.math.BigInteger(value.substring(66), 16);
+            if (x.compareTo(SECP256K1_P) >= 0 || y.compareTo(SECP256K1_P) >= 0) return false;
+            java.math.BigInteger left = y.multiply(y).mod(SECP256K1_P);
+            java.math.BigInteger right = x.modPow(java.math.BigInteger.valueOf(3), SECP256K1_P)
+                    .add(java.math.BigInteger.valueOf(7)).mod(SECP256K1_P);
+            return left.equals(right);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
     static boolean isHex(String value) {
         if (value == null || value.isEmpty()) return false;
         for (int i = 0; i < value.length(); i++) {
@@ -336,18 +377,28 @@ public class MainActivity extends Activity {
     private void refresh() {
         statusText.setText(SolverService.status);
         boolean active = SolverService.running;
+        if (startButton != null) startButton.setEnabled(!active);
+        if (stopButton != null) stopButton.setEnabled(active);
         liveBadge.setText(active ? "● RUNNING" : "● STOPPED");
         liveBadge.setTextColor(active ? TEAL : MUTED);
         liveBadge.setBackground(shape(active ? 0xFF12362F : 0xFF252C3A, 30));
         opsText.setText(SolverService.ops);
         dpsText.setText(SolverService.dps);
 
-        long bytes = new File(getFilesDir(), "dp.json").length();
+        File dpFile = new File(getFilesDir(), "dp.json");
+        long bytes = dpFile.exists() ? dpFile.length() : 0;
         String size = bytes < 1024
             ? bytes + " B"
             : String.format(java.util.Locale.US, "%.1f KB", bytes / 1024.0);
+        String dpState = !dpFile.exists() ? "missing"
+            : bytes == 0 ? "present but empty" : "present; native save/load unverified";
+        long modifiedMs = dpFile.exists() ? dpFile.lastModified() : 0;
+        String modified = modifiedMs > 0
+            ? String.format(java.util.Locale.US, "%.0f min ago",
+                Math.max(0, (System.currentTimeMillis() - modifiedMs) / 60000.0))
+            : "unknown";
 
-        storageText.setText("DP file size (save/load unverified): " + size);
+        storageText.setText("DP file: " + dpState + " • " + size + " • modified " + modified);
         restartText.setText("Restarts: " + SolverService.restarts);
         long elapsed = SolverService.elapsedMs;
         if (SolverService.running && SolverService.sessionStartMs > 0) {
