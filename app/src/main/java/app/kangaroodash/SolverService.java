@@ -18,9 +18,16 @@ public class SolverService extends Service {
     // Fail closed if the OS still reports a native solver process alive after
     // bounded termination attempts. Do not permit a second engine to overlap it.
     private static volatile boolean nativeProcessCleanupFailed = false;
+    private static volatile java.lang.Process stuckNativeProcess;
 
     static boolean isBusy() {
         Thread current = activeWorker;
+        java.lang.Process stuck = stuckNativeProcess;
+        if (nativeProcessCleanupFailed && (stuck == null || !stuck.isAlive())) {
+            // The OS has finally reaped the process; allow a later retry.
+            nativeProcessCleanupFailed = false;
+            stuckNativeProcess = null;
+        }
         return running || workerBusy || nativeProcessCleanupFailed
                 || (current != null && current.isAlive());
     }
@@ -308,6 +315,7 @@ public class SolverService extends Service {
                         if (completedProcess.isAlive()) {
                             // Keep the safety latch set even after this worker exits:
                             // isBusy() must prevent a new engine from overlapping a stuck process.
+                            stuckNativeProcess = completedProcess;
                             nativeProcessCleanupFailed = true;
                             status = "Native process is still alive after forced termination; automatic restart disabled";
                             appendLog(logF, status);
