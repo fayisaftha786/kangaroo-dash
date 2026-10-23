@@ -418,7 +418,8 @@ public class SolverService extends Service {
     }
 
     // Returns true only when the OS still reports the process alive after all bounded attempts.
-    private static boolean terminateProcess(java.lang.Process process) {
+    // Package-private so unit tests can exercise the shutdown contract with fake processes.
+    static boolean terminateProcess(java.lang.Process process) {
         if (process == null || !process.isAlive()) return false;
 
         // Preserve cancellation semantics without letting an already-set interrupt
