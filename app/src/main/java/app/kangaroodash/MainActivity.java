@@ -321,8 +321,24 @@ public class MainActivity extends Activity {
         }
     }
 
+    static boolean isHex(String value) {
+        if (value == null || value.isEmpty()) return false;
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            boolean digit = c >= '0' && c <= '9';
+            boolean lower = c >= 'a' && c <= 'f';
+            boolean upper = c >= 'A' && c <= 'F';
+            if (!digit && !lower && !upper) return false;
+        }
+        return true;
+    }
+
     private void refresh() {
         statusText.setText(SolverService.status);
+        boolean active = SolverService.running;
+        liveBadge.setText(active ? "● RUNNING" : "● STOPPED");
+        liveBadge.setTextColor(active ? TEAL : MUTED);
+        liveBadge.setBackground(shape(active ? 0xFF12362F : 0xFF252C3A, 30));
         opsText.setText(SolverService.ops);
         dpsText.setText(SolverService.dps);
 
