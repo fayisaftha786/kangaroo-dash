@@ -232,9 +232,8 @@ public class MainActivity extends Activity {
 
         startButton.setOnClickListener(v -> startSolver());
         stopButton.setOnClickListener(v -> {
-            Intent i = new Intent(this, SolverService.class);
-            i.setAction("stop");
-            startService(i);
+            // Stopping an existing service does not attempt a new background service start.
+            stopService(new Intent(this, SolverService.class));
             statusText.setText("Stopping…");
         });
 
@@ -265,6 +264,10 @@ public class MainActivity extends Activity {
     }
 
     private void startSolver() {
+        if (SolverService.running) {
+            statusText.setText("Engine is already running");
+            return;
+        }
         String pubValue = pub.getText().toString().trim();
         String startValue = start.getText().toString().trim();
         String rangeValue = range.getText().toString().trim();
@@ -336,6 +339,8 @@ public class MainActivity extends Activity {
     private void refresh() {
         statusText.setText(SolverService.status);
         boolean active = SolverService.running;
+        if (startButton != null) startButton.setEnabled(!active);
+        if (stopButton != null) stopButton.setEnabled(active);
         liveBadge.setText(active ? "● RUNNING" : "● STOPPED");
         liveBadge.setTextColor(active ? TEAL : MUTED);
         liveBadge.setBackground(shape(active ? 0xFF12362F : 0xFF252C3A, 30));
