@@ -279,8 +279,8 @@ public class MainActivity extends Activity {
             statusText.setText("Please fill in every field");
             return;
         }
-        if (!isHex(pubValue) || (pubValue.length() != 66 && pubValue.length() != 130)) {
-            statusText.setText("Invalid public key: expected 33-byte or 65-byte hex");
+        if (!isPublicKeyHex(pubValue)) {
+            statusText.setText("Invalid public-key encoding: compressed keys must start 02/03; uncompressed keys must start 04");
             return;
         }
         if (!isHex(startValue)) {
@@ -322,6 +322,15 @@ public class MainActivity extends Activity {
         } catch (Exception e) {
             statusText.setText("Could not start: " + e.getMessage());
         }
+    }
+
+    static boolean isPublicKeyHex(String value) {
+        if (!isHex(value)) return false;
+        if (value.length() == 66) {
+            String prefix = value.substring(0, 2);
+            return "02".equalsIgnoreCase(prefix) || "03".equalsIgnoreCase(prefix);
+        }
+        return value.length() == 130 && "04".equalsIgnoreCase(value.substring(0, 2));
     }
 
     static boolean isHex(String value) {
