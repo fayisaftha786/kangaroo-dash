@@ -184,7 +184,7 @@ public class MainActivity extends Activity {
 
         LinearLayout config = card();
         pub = field(config, "PUBLIC KEY (HEX)", 
-            "031f6a332d3c5c4f2de2378c012f429cd109ba07d69690c6c701b6bb87860d6640");
+            "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798");
         start = field(config, "START (HEX)", 
             "80000000000000000000000000000000000");
         range = field(config, "RANGE (BITS)", "139");
@@ -280,7 +280,7 @@ public class MainActivity extends Activity {
             return;
         }
         if (!isPublicKeyHex(pubValue)) {
-            statusText.setText("Invalid public-key encoding: compressed keys must start 02/03; uncompressed keys must start 04");
+            statusText.setText("Invalid secp256k1 public key: check encoding and curve point");
             return;
         }
         if (!isHex(startValue)) {
@@ -324,13 +324,42 @@ public class MainActivity extends Activity {
         }
     }
 
+    private static final java.math.BigInteger SECP256K1_P =
+            new java.math.BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16);
+    private static final java.math.BigInteger SECP256K1_SQRT_EXP =
+            SECP256K1_P.add(java.math.BigInteger.ONE).shiftRight(2);
+
     static boolean isPublicKeyHex(String value) {
         if (!isHex(value)) return false;
-        if (value.length() == 66) {
-            String prefix = value.substring(0, 2);
-            return "02".equalsIgnoreCase(prefix) || "03".equalsIgnoreCase(prefix);
+        try {
+            if (value.length() == 66) {
+                String prefix = value.substring(0, 2);
+                if (!"02".equalsIgnoreCase(prefix) && !"03".equalsIgnoreCase(prefix)) {
+                    return false;
+                }
+                java.math.BigInteger x = new java.math.BigInteger(value.substring(2), 16);
+                if (x.compareTo(SECP256K1_P) >= 0) return false;
+                java.math.BigInteger rhs = x.modPow(java.math.BigInteger.valueOf(3), SECP256K1_P)
+                        .add(java.math.BigInteger.valueOf(7)).mod(SECP256K1_P);
+                java.math.BigInteger y = rhs.modPow(SECP256K1_SQRT_EXP, SECP256K1_P);
+                if (!y.multiply(y).mod(SECP256K1_P).equals(rhs)) return false;
+                boolean odd = y.testBit(0);
+                return odd == "03".equalsIgnoreCase(prefix)
+                        || y.signum() == 0 && "02".equalsIgnoreCase(prefix);
+            }
+            if (value.length() != 130 || !"04".equalsIgnoreCase(value.substring(0, 2))) {
+                return false;
+            }
+            java.math.BigInteger x = new java.math.BigInteger(value.substring(2, 66), 16);
+            java.math.BigInteger y = new java.math.BigInteger(value.substring(66), 16);
+            if (x.compareTo(SECP256K1_P) >= 0 || y.compareTo(SECP256K1_P) >= 0) return false;
+            java.math.BigInteger left = y.multiply(y).mod(SECP256K1_P);
+            java.math.BigInteger right = x.modPow(java.math.BigInteger.valueOf(3), SECP256K1_P)
+                    .add(java.math.BigInteger.valueOf(7)).mod(SECP256K1_P);
+            return left.equals(right);
+        } catch (NumberFormatException e) {
+            return false;
         }
-        return value.length() == 130 && "04".equalsIgnoreCase(value.substring(0, 2));
     }
 
     static boolean isHex(String value) {
