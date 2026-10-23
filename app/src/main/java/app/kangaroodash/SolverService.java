@@ -35,14 +35,6 @@ public class SolverService extends Service {
         }
         if (in == null || running) return START_NOT_STICKY;
 
-        // running can become false before the old worker finishes its finally block.
-        // Do not let a new session overlap old process/wake-lock/service cleanup.
-        Thread previousWorker = worker;
-        if (previousWorker != null && previousWorker.isAlive()) {
-            status = "Previous session is still shutting down; try starting again shortly";
-            return START_NOT_STICKY;
-        }
-
         try {
             NotificationChannel ch = new NotificationChannel("k", "Kangaroo", NotificationManager.IMPORTANCE_LOW);
             getSystemService(NotificationManager.class).createNotificationChannel(ch);
@@ -53,6 +45,13 @@ public class SolverService extends Service {
                 startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
             } else {
                 startForeground(1, n);
+            }
+            // A startForegroundService request must promote the service before we return.
+            // Check for a worker still in its cleanup phase only after foreground promotion.
+            Thread previousWorker = worker;
+            if (previousWorker != null && previousWorker.isAlive()) {
+                status = "Previous session is still shutting down; try starting again shortly";
+                return START_NOT_STICKY;
             }
             wl = ((PowerManager) getSystemService(POWER_SERVICE))
                     .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "k:run");
