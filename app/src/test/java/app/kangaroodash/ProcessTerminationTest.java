@@ -39,6 +39,20 @@ public class ProcessTerminationTest {
         assertTrue(process.isAlive());
     }
 
+    @Test public void forceTerminatesAndRestoresInterruptWhenWaitIsInterrupted() {
+        FakeProcess process = new FakeProcess(false, true);
+        process.interruptOnFirstTimedWait = true;
+        try {
+            assertFalse(SolverService.terminateProcess(process));
+            assertEquals(1, process.destroyCalls);
+            assertEquals(1, process.forceCalls);
+            assertTrue("interrupt status must be restored after interrupted wait",
+                    Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
     @Test public void restoresPreexistingThreadInterruptFlag() {
         FakeProcess process = new FakeProcess(true, true);
         try {
@@ -57,6 +71,8 @@ public class ProcessTerminationTest {
         private final boolean exitsForcibly;
         int destroyCalls;
         int forceCalls;
+        boolean interruptOnFirstTimedWait;
+        int timedWaitCalls;
 
         FakeProcess(boolean exitsGracefully, boolean exitsForcibly) {
             this.alive = true;
@@ -73,7 +89,11 @@ public class ProcessTerminationTest {
             return 0;
         }
 
-        @Override public boolean waitFor(long timeout, TimeUnit unit) {
+        @Override public boolean waitFor(long timeout, TimeUnit unit) throws InterruptedException {
+            timedWaitCalls++;
+            if (interruptOnFirstTimedWait && timedWaitCalls == 1) {
+                throw new InterruptedException("simulated cancellation during wait");
+            }
             return !alive;
         }
 
