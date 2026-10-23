@@ -21,6 +21,7 @@ public class MainActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private TextView statusText, opsText, dpsText, storageText;
     private TextView restartText, tempText, resultText, elapsedText, speedText;
+    private TextView memoryText, logStorageText;
     private EditText pub, start, range, dp, kangaroos;
     private Button startButton, stopButton;
     private TextView liveBadge;
@@ -172,10 +173,16 @@ public class MainActivity extends Activity {
         addSection(root, "Live scan", liveDetails);
 
         LinearLayout details = card();
-        storageText = text("DP storage: —", 13, TEXT, false);
+        storageText = text("DP persistence file: —", 13, TEXT, false);
+        memoryText = text("Memory: —", 13, TEXT, false);
+        logStorageText = text("Diagnostic log: —", 13, TEXT, false);
         restartText = text("Restarts: —", 13, TEXT, false);
         tempText = text("Battery temperature: —", 13, TEXT, false);
         details.addView(storageText);
+        gap(details, 12);
+        details.addView(memoryText);
+        gap(details, 12);
+        details.addView(logStorageText);
         gap(details, 12);
         details.addView(restartText);
         gap(details, 12);
@@ -342,6 +349,29 @@ public class MainActivity extends Activity {
         return true;
     }
 
+    private static String formatBytes(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        double value = bytes;
+        String[] units = {"KB", "MB", "GB", "TB"};
+        int unit = -1;
+        do {
+            value /= 1024.0;
+            unit++;
+        } while (value >= 1024.0 && unit < units.length - 1);
+        return String.format(java.util.Locale.US, "%.1f %s", value, units[unit]);
+    }
+
+    private String fileSummary(File file) {
+        if (!file.exists()) return "not created";
+        String modified = file.lastModified() > 0
+                ? android.text.format.DateFormat.format("yyyy-MM-dd HH:mm:ss",
+                    file.lastModified()).toString()
+                : "unknown";
+        return formatBytes(file.length()) + ", modified " + modified
+                + (file.canRead() ? ", readable" : ", unreadable")
+                + (file.canWrite() ? ", writable" : ", read-only");
+    }
+
     private void refresh() {
         statusText.setText(SolverService.status);
         boolean active = SolverService.running;
@@ -351,12 +381,23 @@ public class MainActivity extends Activity {
         opsText.setText(SolverService.ops);
         dpsText.setText(SolverService.dps);
 
-        long bytes = new File(getFilesDir(), "dp.json").length();
-        String size = bytes < 1024
-            ? bytes + " B"
-            : String.format(java.util.Locale.US, "%.1f KB", bytes / 1024.0);
+        File dpFile = new File(getFilesDir(), "dp.json");
+        File logFile = new File(getFilesDir(), "scan.log");
+        storageText.setText("DP persistence file: " + fileSummary(dpFile));
+        logStorageText.setText("Diagnostic log: " + fileSummary(logFile));
 
-        storageText.setText("DP storage: " + size);
+        android.app.ActivityManager.MemoryInfo memoryInfo =
+                new android.app.ActivityManager.MemoryInfo();
+        android.app.ActivityManager activityManager =
+                (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        if (activityManager != null) activityManager.getMemoryInfo(memoryInfo);
+        Runtime runtime = Runtime.getRuntime();
+        long appUsed = Math.max(0, runtime.totalMemory() - runtime.freeMemory());
+        long appMax = runtime.maxMemory();
+        memoryText.setText("RAM available to system: " + formatBytes(memoryInfo.availMem)
+                + " / " + formatBytes(memoryInfo.totalMem)
+                + "\\nApp Java heap: " + formatBytes(appUsed)
+                + " used / " + formatBytes(appMax) + " max");
         restartText.setText("Restarts: " + SolverService.restarts);
         long elapsed = SolverService.elapsedMs;
         if (SolverService.running && SolverService.sessionStartMs > 0) {
