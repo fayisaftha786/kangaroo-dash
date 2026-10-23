@@ -14,9 +14,11 @@ import java.util.regex.*;
 public class SolverService extends Service {
     static volatile boolean running = false;
     private static volatile boolean workerBusy = false;
+    private static volatile Thread activeWorker;
 
     static boolean isBusy() {
-        return running || workerBusy;
+        Thread current = activeWorker;
+        return running || workerBusy || (current != null && current.isAlive());
     }
     static volatile String status = "നിർത്തി", ops = "-", dps = "-", found = "";
     static volatile int restarts = 0;
@@ -90,6 +92,7 @@ public class SolverService extends Service {
         ops = "-";
         dps = "-";
         worker = new Thread(() -> loop(a), "kangaroo-engine-worker");
+        activeWorker = worker;
         worker.start();
         return START_NOT_STICKY;
     }
