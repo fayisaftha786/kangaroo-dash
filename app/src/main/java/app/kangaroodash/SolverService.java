@@ -92,13 +92,6 @@ public class SolverService extends Service {
         }
     }
 
-    private static String dpFileSummary(File file) {
-        if (!file.exists()) return "absent";
-        return "size=" + file.length() + " bytes, modified="
-                + file.lastModified() + ", readable=" + file.canRead()
-                + ", writable=" + file.canWrite();
-    }
-
     private void appendLog(File logFile, String message) {
         try {
             DiagnosticLog.append(logFile, message);
@@ -137,10 +130,9 @@ public class SolverService extends Service {
                             "--start", a[1], "--range", a[2], "--dp-bits", a[3],
                             "--output", foundF.getAbsolutePath(), "--kangaroos", a[4]);
                     pb.directory(dir);
-                    File dpFile = new File(dir, "dp.json");
-                    pb.environment().put("KANGAROO_DP_FILE", dpFile.getAbsolutePath());
+                    pb.environment().put("KANGAROO_DP_FILE",
+                            new File(dir, "dp.json").getAbsolutePath());
                     pb.redirectErrorStream(true);
-                    appendLog(logF, "DP file before engine start: " + dpFileSummary(dpFile));
                     status = "ഓടുന്നു";
                     proc = pb.start();
                     appendLog(logF, "--- Solver process started: " + new java.util.Date() + " ---");
@@ -224,7 +216,6 @@ public class SolverService extends Service {
                     if (proc != null) {
                         exitCode = proc.waitFor();
                         appendLog(logF, "Solver process exit code: " + exitCode);
-                        appendLog(logF, "DP file after engine exit: " + dpFileSummary(dpFile));
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -239,8 +230,6 @@ public class SolverService extends Service {
                     java.lang.Process current = proc;
                     proc = null;
                     if (current != null && current.isAlive()) current.destroyForcibly();
-                    appendLog(logF, "DP file during process cleanup: "
-                            + dpFileSummary(new File(dir, "dp.json")));
                 }
 
                 if (foundF.exists() && foundF.length() > 0) {
