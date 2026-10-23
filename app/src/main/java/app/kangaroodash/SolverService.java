@@ -6,6 +6,9 @@ import android.content.pm.ServiceInfo;
 import android.os.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.*;
 
 public class SolverService extends Service {
@@ -130,8 +133,8 @@ public class SolverService extends Service {
                     proc = pb.start();
                     appendLog(logF, "--- Solver process started: " + new java.util.Date() + " ---");
 
-                    final String eof = "\u0000KANGAROO_EOF";
-                    final BlockingQueue<String> outputLines = new LinkedBlockingQueue<>(1024);
+                    final Object eof = new Object();
+                    final BlockingQueue<Object> outputLines = new LinkedBlockingQueue<>(1024);
                     final Process currentProcess = proc;
                     Thread outputReader = new Thread(() -> {
                         try (BufferedReader reader = new BufferedReader(
@@ -142,9 +145,7 @@ public class SolverService extends Service {
                             }
                         } catch (Exception readerError) {
                             try {
-                                outputLines.put("Engine output reader error: " + safeMessage(
-                                        readerError instanceof Exception ? (Exception) readerError
-                                                : new Exception(readerError)));
+                                outputLines.put("Engine output reader error: " + safeMessage(readerError));
                             } catch (InterruptedException ignored) {
                                 Thread.currentThread().interrupt();
                             }
