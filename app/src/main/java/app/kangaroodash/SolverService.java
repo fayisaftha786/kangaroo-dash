@@ -178,15 +178,13 @@ public class SolverService extends Service {
                             if (proc != null) proc.destroy();
                             break;
                         }
-                        if (output == null) {
-                            long now = SystemClock.elapsedRealtime();
-                            if (now - lastProgressAt >= 30000 && !staleWarningLogged) {
-                                status = "No telemetry/progress for 30s — engine may be stalled; not auto-stopped";
-                                appendLog(logF, status);
-                                staleWarningLogged = true;
-                            }
-                            continue;
+                        long progressCheckAt = SystemClock.elapsedRealtime();
+                        if (progressCheckAt - lastProgressAt >= 30000 && !staleWarningLogged) {
+                            status = "No telemetry/progress for 30s — engine may be stalled; not auto-stopped";
+                            appendLog(logF, status);
+                            staleWarningLogged = true;
                         }
+                        if (output == null) continue;
                         if (output == eof) {
                             outputEnded = true;
                             continue;
@@ -285,7 +283,7 @@ public class SolverService extends Service {
                     ? Math.max(elapsedMs, SystemClock.elapsedRealtime() - sessionStartMs) : elapsedMs;
             java.lang.Process current = proc;
             proc = null;
-            if (current != null && current.isAlive()) current.destroy();
+            terminateProcess(current);
             releaseWakeLock();
             try {
                 stopForeground(true);
