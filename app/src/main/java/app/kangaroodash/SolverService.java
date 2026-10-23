@@ -161,18 +161,19 @@ public class SolverService extends Service {
 
                     boolean outputEnded = false;
                     while (running && !Thread.currentThread().isInterrupted() && !outputEnded) {
-                        String line = outputLines.poll(5, TimeUnit.SECONDS);
+                        Object output = outputLines.poll(5, TimeUnit.SECONDS);
                         temp = batt();
                         if (temp >= 45f) {
                             status = "High temperature; stopping engine temporarily";
                             if (proc != null) proc.destroy();
                             break;
                         }
-                        if (line == null) continue;
-                        if (line.equals(eof)) {
+                        if (output == null) continue;
+                        if (output == eof) {
                             outputEnded = true;
                             continue;
                         }
+                        String line = (String) output;
                         if (line.contains("Verification: SUCCESS")) processVerified = true;
                         if (line.contains("Verification FAILED")
                                 || line.contains("Collision candidate failed verification")) {
@@ -232,11 +233,10 @@ public class SolverService extends Service {
                         found = "found.txt വായിക്കാൻ കഴിഞ്ഞില്ല";
                         appendLog(logF, "Could not read found.txt: " + safeMessage(e));
                     }
+                    resultVerified = false;
                     if (processVerified) {
-                        resultVerified = true;
-                        status = "KEY FOUND — engine reported verification success";
+                        status = "ENGINE REPORTED SUCCESS — independent verification unavailable";
                     } else {
-                        resultVerified = false;
                         status = "UNVERIFIED RESULT — scan.log പരിശോധിക്കുക";
                     }
                     running = false;
