@@ -105,6 +105,7 @@ public class ProcessTerminationTest {
         int forceCalls;
         boolean interruptOnFirstTimedWait;
         boolean interruptOnEveryTimedWait;
+        boolean throwOnDestroy;
         int timedWaitCalls;
 
         FakeProcess(boolean exitsGracefully, boolean exitsForcibly) {
