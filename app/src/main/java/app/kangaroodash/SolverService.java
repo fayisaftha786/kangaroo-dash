@@ -92,7 +92,24 @@ public class SolverService extends Service {
         dps = "-";
         worker = new Thread(() -> loop(a), "kangaroo-engine-worker");
         activeWorker = worker;
-        worker.start();
+        try {
+            worker.start();
+        } catch (RuntimeException startError) {
+            // Thread.start() can fail before loop() takes ownership of cleanup.
+            // Restore every state item here so the dashboard can retry safely.
+            running = false;
+            workerBusy = false;
+            activeWorker = null;
+            worker = null;
+            status = "Worker start failed: " + safeMessage(startError);
+            releaseWakeLock();
+            try {
+                stopForeground(true);
+            } catch (RuntimeException ignored) {
+                // Continue service cleanup even if foreground teardown fails.
+            }
+            stopSelf();
+        }
         return START_NOT_STICKY;
     }
 
