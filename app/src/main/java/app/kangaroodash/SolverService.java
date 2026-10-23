@@ -55,13 +55,14 @@ public class SolverService extends Service {
             }
             // A startForegroundService request must promote the service before we return.
             // Do this before duplicate-start checks so every start request is acknowledged safely.
-            if (running) {
-                return START_NOT_STICKY;
-            }
-            // Check for a worker still in its cleanup phase only after foreground promotion.
-            Thread previousWorker = worker;
-            if (previousWorker != null && previousWorker.isAlive()) {
-                status = "Previous session is still shutting down; try starting again shortly";
+            // Use shared worker state, not this Service instance's worker field:
+            // Android may recreate the Service while the previous instance's worker
+            // is still cleaning up. Never start a second native engine in that window.
+            Thread previousWorker = activeWorker;
+            if (isBusy() || (previousWorker != null && previousWorker.isAlive())) {
+                if (!running) {
+                    status = "Previous session is still shutting down; try starting again shortly";
+                }
                 // The existing worker still owns process/wake-lock/foreground cleanup.
                 // Keep the service foreground until that worker's finally block completes.
                 return START_NOT_STICKY;
