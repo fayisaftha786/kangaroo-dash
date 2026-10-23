@@ -19,10 +19,18 @@ public class InputValidationTest {
         assertFalse(MainActivity.isHex("12g4"));
     }
 
-    @Test public void acceptsSupportedPublicKeyEncodingsByPrefixAndLength() {
-        assertTrue(MainActivity.isPublicKeyHex("02" + repeat('a', 64)));
-        assertTrue(MainActivity.isPublicKeyHex("03" + repeat('b', 64)));
-        assertTrue(MainActivity.isPublicKeyHex("04" + repeat('c', 128)));
+    @Test public void acceptsValidCompressedAndUncompressedGeneratorPoints() {
+        String x = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+        String y = "483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8";
+        assertTrue(MainActivity.isPublicKeyHex("02" + x));
+        assertTrue(MainActivity.isPublicKeyHex("03" + x));
+        assertTrue(MainActivity.isPublicKeyHex("04" + x + y));
+    }
+
+    @Test public void rejectsHexEncodedValuesThatAreNotCurvePoints() {
+        assertFalse(MainActivity.isPublicKeyHex("02" + repeat('f', 64)));
+        assertFalse(MainActivity.isPublicKeyHex("04" + repeat('0', 128)));
+        assertFalse(MainActivity.isPublicKeyHex("04" + repeat('f', 64) + repeat('0', 64)));
     }
 
     @Test public void rejectsWrongPublicKeyPrefixOrLength() {
