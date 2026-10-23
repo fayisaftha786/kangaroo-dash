@@ -207,7 +207,7 @@ public class SolverService extends Service {
                             processVerified = false;
                         }
                         line = line.replaceAll("\u001B\\[[0-9;]*m", "");
-                        if (!line.trim().isEmpty()) status = "Engine: " + line.trim();
+                        if (!line.trim().isEmpty() && !staleWarningLogged) status = "Engine: " + line.trim();
                         appendLog(logF, line);
 
                         Matcher m = OPS.matcher(line);
@@ -240,6 +240,7 @@ public class SolverService extends Service {
                             previousOpsAt = now;
                             ops = m.group(1) + "M";
                             dps = currentDpsText;
+                            status = "Telemetry active: Ops " + ops + " | DPs " + dps;
                         }
                     }
                     if (proc != null) {
