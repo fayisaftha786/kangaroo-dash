@@ -13,6 +13,13 @@ import java.util.regex.*;
 
 public class SolverService extends Service {
     static volatile boolean running = false;
+    private static volatile boolean workerBusy = false;
+    private static volatile Thread activeWorker;
+
+    static boolean isBusy() {
+        Thread current = activeWorker;
+        return running || workerBusy || (current != null && current.isAlive());
+    }
     static volatile String status = "നിർത്തി", ops = "-", dps = "-", found = "";
     static volatile int restarts = 0;
     static volatile long sessionStartMs = 0, elapsedMs = 0;
@@ -51,9 +58,8 @@ public class SolverService extends Service {
             Thread previousWorker = worker;
             if (previousWorker != null && previousWorker.isAlive()) {
                 status = "Previous session is still shutting down; try starting again shortly";
-                // This request promoted the service, but the existing worker owns cleanup.
-                // Remove the temporary foreground notification without stopping that worker.
-                stopForeground(true);
+                // The existing worker still owns process/wake-lock/foreground cleanup.
+                // Keep the service foreground until that worker's finally block completes.
                 return START_NOT_STICKY;
             }
             wl = ((PowerManager) getSystemService(POWER_SERVICE))
@@ -74,6 +80,7 @@ public class SolverService extends Service {
         final String[] a = { in.getStringExtra("pub"), in.getStringExtra("start"),
                 in.getStringExtra("range"), in.getStringExtra("dp"), in.getStringExtra("k") };
         running = true;
+        workerBusy = true;
         restarts = 0;
         found = "";
         resultVerified = false;
@@ -84,6 +91,7 @@ public class SolverService extends Service {
         ops = "-";
         dps = "-";
         worker = new Thread(() -> loop(a), "kangaroo-engine-worker");
+        activeWorker = worker;
         worker.start();
         return START_NOT_STICKY;
     }
@@ -322,6 +330,7 @@ public class SolverService extends Service {
             try {
                 stopForeground(true);
             } catch (RuntimeException ignored) {}
+            workerBusy = false;
             stopSelf();
         }
     }
@@ -365,8 +374,18 @@ public class SolverService extends Service {
     void stopAll() {
         running = false;
         status = "നിർത്തി";
+
+        // onDestroy/onStartCommand run on the main thread. Do not wait here for
+        // native process termination; the worker's finally block performs bounded cleanup.
         java.lang.Process current = proc;
-        terminateProcess(current);
+        if (current != null && current.isAlive()) {
+            try {
+                current.destroy();
+            } catch (RuntimeException ignored) {
+                // The worker will still attempt forced termination during cleanup.
+            }
+        }
+
         Thread currentWorker = worker;
         if (currentWorker != null) currentWorker.interrupt();
         releaseWakeLock();

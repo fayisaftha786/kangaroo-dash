@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 final class SolverTelemetry {
     // Keep prefix/suffix log text permissive, but do not accept partial numeric tokens.
     private static final Pattern OPS = Pattern.compile(
-            "(?<![A-Za-z0-9_])Ops: (\\d+)M \\| DPs: (\\d+)(?![A-Za-z0-9_])");
+            "(?<![A-Za-z0-9_])Ops: (\\d+)M \\| DPs: (\\d+)(?![A-Za-z0-9_.])");
 
     private SolverTelemetry() {}
 
