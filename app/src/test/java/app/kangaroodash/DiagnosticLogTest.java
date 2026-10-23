@@ -11,9 +11,9 @@ public class DiagnosticLogTest {
         File dir = Files.createTempDirectory("kangaroo-log-test").toFile();
         File log = new File(dir, "scan.log");
         try {
-            StringBuilder large = new StringBuilder();
-            for (int i = 0; i < DiagnosticLog.MAX_BYTES; i++) large.append('x');
-            DiagnosticLog.append(log, large.toString());
+            StringBuilder chunk = new StringBuilder();
+            for (int i = 0; i < 1024; i++) chunk.append('x');
+            for (int i = 0; i < 260; i++) DiagnosticLog.append(log, chunk.toString());
             assertTrue(log.length() > DiagnosticLog.MAX_BYTES);
 
             DiagnosticLog.append(log, "new-session");
