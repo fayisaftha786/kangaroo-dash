@@ -393,7 +393,9 @@ public class SolverService extends Service {
                     ? Math.max(elapsedMs, SystemClock.elapsedRealtime() - sessionStartMs) : elapsedMs;
             java.lang.Process current = proc;
             proc = null;
-            terminateProcess(current);
+            if (terminateProcess(current)) {
+                appendLog(logF, "Cleanup warning: native process remains alive after bounded termination attempts");
+            }
             releaseWakeLock();
             try {
                 stopForeground(true);
@@ -409,8 +411,9 @@ public class SolverService extends Service {
         return "exists, bytes=" + file.length() + ", modifiedMs=" + file.lastModified();
     }
 
-    private static void terminateProcess(java.lang.Process process) {
-        if (process == null || !process.isAlive()) return;
+    // Returns true only when the OS still reports the process alive after all bounded attempts.
+    private static boolean terminateProcess(java.lang.Process process) {
+        if (process == null || !process.isAlive()) return false;
 
         // Preserve cancellation semantics without letting an already-set interrupt
         // skip the bounded wait needed to reap the native process.
@@ -447,6 +450,7 @@ public class SolverService extends Service {
         } finally {
             if (interrupted) Thread.currentThread().interrupt();
         }
+        return process.isAlive();
     }
 
     private synchronized void releaseWakeLock() {
