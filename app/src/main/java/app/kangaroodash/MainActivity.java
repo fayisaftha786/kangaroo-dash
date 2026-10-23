@@ -342,12 +342,22 @@ public class MainActivity extends Activity {
         opsText.setText(SolverService.ops);
         dpsText.setText(SolverService.dps);
 
-        long bytes = new File(getFilesDir(), "dp.json").length();
+        File dpFile = new File(getFilesDir(), "dp.json");
+        long bytes = dpFile.exists() ? dpFile.length() : 0L;
         String size = bytes < 1024
             ? bytes + " B"
             : String.format(java.util.Locale.US, "%.1f KB", bytes / 1024.0);
-
-        storageText.setText("DP storage: " + size);
+        String fileState;
+        if (!dpFile.exists()) {
+            fileState = "missing";
+        } else if (bytes == 0) {
+            fileState = "exists, empty";
+        } else {
+            long ageMs = Math.max(0L, System.currentTimeMillis() - dpFile.lastModified());
+            long ageSeconds = ageMs / 1000L;
+            fileState = "exists, updated " + ageSeconds + "s ago";
+        }
+        storageText.setText("DP file: " + fileState + " • " + size);
         restartText.setText("Restarts: " + SolverService.restarts);
         long elapsed = SolverService.elapsedMs;
         if (SolverService.running && SolverService.sessionStartMs > 0) {
