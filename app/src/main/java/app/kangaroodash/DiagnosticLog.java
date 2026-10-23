@@ -17,7 +17,7 @@ final class DiagnosticLog {
         String safeMessage = message == null ? "" : message;
         // Bound even a single unexpectedly huge native output line.
         if (safeMessage.length() > MAX_BYTES / 4) {
-            safeMessage = safeMessage.substring(0, (int) (MAX_BYTES / 4));
+            safeMessage = safeMessage.substring(0, (int) (MAX_BYTES / 4 - 1));
         }
         byte[] bytes = (safeMessage + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
         if (file.exists() && file.length() + bytes.length > MAX_BYTES) {
