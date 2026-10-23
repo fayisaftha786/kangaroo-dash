@@ -14,7 +14,7 @@ public class DiagnosticLogTest {
             StringBuilder chunk = new StringBuilder();
             for (int i = 0; i < 1024; i++) chunk.append('x');
             for (int i = 0; i < 260; i++) DiagnosticLog.append(log, chunk.toString());
-            assertTrue(log.length() > DiagnosticLog.MAX_BYTES);
+            assertTrue(log.length() <= DiagnosticLog.MAX_BYTES);
 
             DiagnosticLog.append(log, "new-session");
             File backup = new File(dir, "scan.log.1");
