@@ -27,7 +27,6 @@ final class DiagnosticLog {
         }
         try (FileOutputStream out = new FileOutputStream(file, true)) {
             out.write(bytes);
-            out.getFD().sync();
         }
     }
 }
