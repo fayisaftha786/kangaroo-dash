@@ -40,7 +40,7 @@ public class SolverService extends Service {
             stopSelf();
             return START_NOT_STICKY;
         }
-        if (in == null || running) return START_NOT_STICKY;
+        if (in == null) return START_NOT_STICKY;
 
         try {
             NotificationChannel ch = new NotificationChannel("k", "Kangaroo", NotificationManager.IMPORTANCE_LOW);
@@ -54,6 +54,10 @@ public class SolverService extends Service {
                 startForeground(1, n);
             }
             // A startForegroundService request must promote the service before we return.
+            // Do this before duplicate-start checks so every start request is acknowledged safely.
+            if (running) {
+                return START_NOT_STICKY;
+            }
             // Check for a worker still in its cleanup phase only after foreground promotion.
             Thread previousWorker = worker;
             if (previousWorker != null && previousWorker.isAlive()) {
