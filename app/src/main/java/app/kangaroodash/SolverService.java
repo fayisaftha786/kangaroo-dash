@@ -34,6 +34,15 @@ public class SolverService extends Service {
             return START_NOT_STICKY;
         }
         if (in == null || running) return START_NOT_STICKY;
+
+        // running can become false before the old worker finishes its finally block.
+        // Do not let a new session overlap old process/wake-lock/service cleanup.
+        Thread previousWorker = worker;
+        if (previousWorker != null && previousWorker.isAlive()) {
+            status = "Previous session is still shutting down; try starting again shortly";
+            return START_NOT_STICKY;
+        }
+
         try {
             NotificationChannel ch = new NotificationChannel("k", "Kangaroo", NotificationManager.IMPORTANCE_LOW);
             getSystemService(NotificationManager.class).createNotificationChannel(ch);
@@ -206,7 +215,7 @@ public class SolverService extends Service {
                                 || line.contains("Collision candidate failed verification")) {
                             processVerified = false;
                         }
-                        line = line.replaceAll("\u001B\\[[0-9;]*m", "");
+                        line = line.replaceAll("\u001B\\\\[[0-9;]*m", "");
                         if (!line.trim().isEmpty() && !staleWarningLogged) status = "Engine: " + line.trim();
                         appendLog(logF, line);
 
