@@ -195,7 +195,7 @@ public class SolverService extends Service {
                         temp = batt();
                         if (temp >= 45f) {
                             status = "High temperature; stopping engine temporarily";
-                            if (proc != null) proc.destroy();
+                            terminateProcess(proc);
                             break;
                         }
                         long progressCheckAt = SystemClock.elapsedRealtime();
