@@ -387,7 +387,12 @@ public class SolverService extends Service {
         }
 
         Thread currentWorker = worker;
-        if (currentWorker != null) currentWorker.interrupt();
+        if (currentWorker != null && currentWorker.isAlive()) {
+            currentWorker.interrupt();
+            // Keep the CPU awake while the worker reaps the native process and
+            // closes its output reader. The worker's finally block releases it.
+            return;
+        }
         releaseWakeLock();
     }
 
