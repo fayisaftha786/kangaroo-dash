@@ -131,7 +131,7 @@ public class SolverService extends Service {
                     appendLog(logF, "--- Solver process started: " + new java.util.Date() + " ---");
 
                     final String eof = "\u0000KANGAROO_EOF";
-                    final BlockingQueue<String> outputLines = new LinkedBlockingQueue<>();
+                    final BlockingQueue<String> outputLines = new LinkedBlockingQueue<>(1024);
                     final Process currentProcess = proc;
                     Thread outputReader = new Thread(() -> {
                         try (BufferedReader reader = new BufferedReader(
