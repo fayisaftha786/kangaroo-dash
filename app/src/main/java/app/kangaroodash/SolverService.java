@@ -108,6 +108,12 @@ public class SolverService extends Service {
         long previousOps = -1, previousOpsAt = 0;
 
         try {
+            File engine = new File(bin);
+            if (!engine.isFile() || !engine.canExecute()) {
+                status = "Native engine missing or not executable: " + engine.getName();
+                appendLog(logF, status + " (path=" + engine.getAbsolutePath() + ")");
+                return;
+            }
             if (foundF.exists() && !foundF.delete()) {
                 status = "Cannot clear stale result file; engine not started";
                 appendLog(logF, status);
@@ -134,8 +140,13 @@ public class SolverService extends Service {
                             new File(dir, "dp.json").getAbsolutePath());
                     pb.redirectErrorStream(true);
                     appendLog(logF, "DP file before start: " + fileState(new File(dir, "dp.json")));
+                    if (!running || Thread.currentThread().isInterrupted()) break;
                     status = "ഓടുന്നു";
                     proc = pb.start();
+                    if (!running || Thread.currentThread().isInterrupted()) {
+                        terminateProcess(proc);
+                        break;
+                    }
                     appendLog(logF, "--- Solver process started: " + new java.util.Date() + " ---");
                     long lastProgressAt = SystemClock.elapsedRealtime();
                     String lastProgressDps = dps;
@@ -302,7 +313,15 @@ public class SolverService extends Service {
         if (process == null || !process.isAlive()) return;
         try {
             process.destroy();
-            if (process.isAlive()) process.destroyForcibly();
+            try {
+                if (!process.waitFor(500, TimeUnit.MILLISECONDS) && process.isAlive()) {
+                    process.destroyForcibly();
+                    process.waitFor(1500, TimeUnit.MILLISECONDS);
+                }
+            } catch (InterruptedException e) {
+                process.destroyForcibly();
+                Thread.currentThread().interrupt();
+            }
         } catch (RuntimeException ignored) {
             try { process.destroyForcibly(); } catch (RuntimeException ignoredAgain) {}
         }
