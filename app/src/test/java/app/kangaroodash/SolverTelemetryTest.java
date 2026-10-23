@@ -30,5 +30,7 @@ public class SolverTelemetryTest {
         assertNull(SolverTelemetry.find("Ops: 123M | DPs: 456xyz"));
         assertNull(SolverTelemetry.find("prefixOps: 123M | DPs: 456"));
         assertNull(SolverTelemetry.find("Ops: 123M | DPs: 456_"));
+        assertNull(SolverTelemetry.find("Ops: 9223372036854775808M | DPs: 456"));
+        assertNull(SolverTelemetry.find("Ops: 123M | DPs: 9223372036854775808"));
     }
 }
