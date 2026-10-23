@@ -43,4 +43,32 @@ public class DiagnosticLogTest {
             dir.delete();
         }
     }
+
+    @Test public void truncatesOversizedSingleLineToKeepLogBounded() throws Exception {
+        File dir = Files.createTempDirectory("kangaroo-log-large-line").toFile();
+        File log = new File(dir, "scan.log");
+        try {
+            StringBuilder huge = new StringBuilder();
+            for (int i = 0; i < (int) DiagnosticLog.MAX_BYTES; i++) huge.append('z');
+            DiagnosticLog.append(log, huge.toString());
+
+            assertTrue("a single line must not exceed the log limit", log.length() <= DiagnosticLog.MAX_BYTES);
+            assertTrue("line should be truncated", log.length() < huge.length());
+        } finally {
+            if (log.exists()) log.delete();
+            dir.delete();
+        }
+    }
+
+    @Test public void nullMessageIsWrittenAsEmptyLine() throws Exception {
+        File dir = Files.createTempDirectory("kangaroo-log-null").toFile();
+        File log = new File(dir, "scan.log");
+        try {
+            DiagnosticLog.append(log, null);
+            assertEquals(System.lineSeparator().getBytes(StandardCharsets.UTF_8).length, log.length());
+        } finally {
+            if (log.exists()) log.delete();
+            dir.delete();
+        }
+    }
 }
