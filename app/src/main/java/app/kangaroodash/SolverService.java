@@ -222,7 +222,7 @@ public class SolverService extends Service {
                             }
                             elapsedMs = Math.max(0, now - sessionStartMs);
                             if (currentOps >= 0 && previousOps >= 0
-                                    && currentOps >= previousOps && now > previousOpsAt) {
+                                    && currentOps > previousOps && now > previousOpsAt) {
                                 double rate = (currentOps - previousOps) * 1000.0
                                         / (now - previousOpsAt);
                                 speed = String.format(java.util.Locale.US, "%.2f M ops/s", rate);
