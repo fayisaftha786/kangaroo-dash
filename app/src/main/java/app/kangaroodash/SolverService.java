@@ -51,6 +51,9 @@ public class SolverService extends Service {
             Thread previousWorker = worker;
             if (previousWorker != null && previousWorker.isAlive()) {
                 status = "Previous session is still shutting down; try starting again shortly";
+                // This request promoted the service, but the existing worker owns cleanup.
+                // Remove the temporary foreground notification without stopping that worker.
+                stopForeground(true);
                 return START_NOT_STICKY;
             }
             wl = ((PowerManager) getSystemService(POWER_SERVICE))
@@ -59,7 +62,11 @@ public class SolverService extends Service {
         } catch (RuntimeException e) {
             status = "Service start failed: " + safeMessage(e);
             releaseWakeLock();
-            stopForeground(true);
+            try {
+                stopForeground(true);
+            } catch (RuntimeException ignored) {
+                // Preserve the original startup failure and still request service shutdown.
+            }
             stopSelf();
             return START_NOT_STICKY;
         }
