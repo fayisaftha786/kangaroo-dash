@@ -23,6 +23,7 @@ public class DiagnosticLogTest {
                     .contains("new-session"));
             assertTrue(new String(Files.readAllBytes(backup.toPath()), StandardCharsets.UTF_8)
                     .contains("xxx"));
+            assertTrue("backup must remain bounded", backup.length() <= DiagnosticLog.MAX_BYTES);
         } finally {
             File backup = new File(dir, "scan.log.1");
             if (backup.exists()) backup.delete();
@@ -54,6 +55,23 @@ public class DiagnosticLogTest {
 
             assertTrue("a single line must not exceed the log limit", log.length() <= DiagnosticLog.MAX_BYTES);
             assertTrue("line should be truncated", log.length() < huge.length());
+        } finally {
+            if (log.exists()) log.delete();
+            dir.delete();
+        }
+    }
+
+    @Test public void truncatesOversizedEmojiLineWithoutSplittingSurrogatePair() throws Exception {
+        File dir = Files.createTempDirectory("kangaroo-log-emoji").toFile();
+        File log = new File(dir, "scan.log");
+        try {
+            StringBuilder huge = new StringBuilder();
+            for (int i = 0; i < (int) DiagnosticLog.MAX_BYTES; i++) huge.append("😀");
+            DiagnosticLog.append(log, huge.toString());
+
+            String contents = new String(Files.readAllBytes(log.toPath()), StandardCharsets.UTF_8);
+            assertTrue("UTF-8 output must stay within the byte limit", log.length() <= DiagnosticLog.MAX_BYTES);
+            assertTrue("truncated text should end on a complete emoji", contents.endsWith("😀" + System.lineSeparator()));
         } finally {
             if (log.exists()) log.delete();
             dir.delete();
