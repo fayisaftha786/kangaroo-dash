@@ -346,8 +346,10 @@ public class SolverService extends Service {
                         stuckNativeProcess = current;
                         nativeProcessCleanupFailed = true;
                         running = false;
-                        status = "Native process is still alive after cleanup; automatic restart disabled";
-                        if (newlyDetected) appendLog(logF, status);
+                        if (newlyDetected) {
+                            status = "Native process is still alive after cleanup; automatic restart disabled";
+                            appendLog(logF, status);
+                        }
                     }
                     if (outputReader != null) {
                         outputReader.interrupt();
