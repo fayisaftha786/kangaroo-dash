@@ -70,6 +70,13 @@ public class SolverService extends Service {
                     .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "k:run");
             wl.acquire();
         } catch (RuntimeException e) {
+            // A duplicate start request must never tear down resources owned by an
+            // existing worker if foreground promotion or setup for that request fails.
+            if (isBusy()) {
+                status = "Additional start request failed; existing worker retained: "
+                        + safeMessage(e);
+                return START_NOT_STICKY;
+            }
             status = "Service start failed: " + safeMessage(e);
             releaseWakeLock();
             try {
