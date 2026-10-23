@@ -5,7 +5,9 @@ import java.util.regex.Pattern;
 
 /** Parses the native engine's documented Ops/DP progress line shape. */
 final class SolverTelemetry {
-    private static final Pattern OPS = Pattern.compile("Ops: (\\d+)M \\| DPs: (\\d+)");
+    // Keep prefix/suffix log text permissive, but do not accept partial numeric tokens.
+    private static final Pattern OPS = Pattern.compile(
+            "(?<![A-Za-z0-9_])Ops: (\\d+)M \\| DPs: (\\d+)(?![A-Za-z0-9_])");
 
     private SolverTelemetry() {}
 
