@@ -14,8 +14,12 @@ final class DiagnosticLog {
 
     static synchronized void append(File file, String message) throws IOException {
         if (file == null) throw new IOException("Log file is unavailable");
-        byte[] bytes = ((message == null ? "" : message) + System.lineSeparator())
-                .getBytes(StandardCharsets.UTF_8);
+        String safeMessage = message == null ? "" : message;
+        // Bound even a single unexpectedly huge native output line.
+        if (safeMessage.length() > MAX_BYTES / 4) {
+            safeMessage = safeMessage.substring(0, (int) (MAX_BYTES / 4));
+        }
+        byte[] bytes = (safeMessage + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
         if (file.exists() && file.length() + bytes.length > MAX_BYTES) {
             File backup = new File(file.getParentFile(), file.getName() + BACKUP_SUFFIX);
             if (backup.exists() && !backup.delete()) {
