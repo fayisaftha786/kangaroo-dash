@@ -338,6 +338,17 @@ public class SolverService extends Service {
                     java.lang.Process current = proc;
                     proc = null;
                     terminateProcess(current);
+                    // Every exit path must latch an unreaped process, including interruption
+                    // and exceptions that bypass the normal waitFor()/exit-code block.
+                    if (current != null && current.isAlive()) {
+                        boolean newlyDetected = !nativeProcessCleanupFailed
+                                || stuckNativeProcess != current;
+                        stuckNativeProcess = current;
+                        nativeProcessCleanupFailed = true;
+                        running = false;
+                        status = "Native process is still alive after cleanup; automatic restart disabled";
+                        if (newlyDetected) appendLog(logF, status);
+                    }
                     if (outputReader != null) {
                         outputReader.interrupt();
                         try {
