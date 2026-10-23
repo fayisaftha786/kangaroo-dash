@@ -372,6 +372,10 @@ public class SolverService extends Service {
 
     private static void terminateProcess(java.lang.Process process) {
         if (process == null || !process.isAlive()) return;
+
+        // Preserve cancellation semantics without letting an already-set interrupt
+        // skip the bounded wait needed to reap the native process.
+        boolean interrupted = Thread.interrupted();
         try {
             process.destroy();
             try {
@@ -380,11 +384,29 @@ public class SolverService extends Service {
                     process.waitFor(1500, TimeUnit.MILLISECONDS);
                 }
             } catch (InterruptedException e) {
-                process.destroyForcibly();
-                Thread.currentThread().interrupt();
+                interrupted = true;
+                try {
+                    process.destroyForcibly();
+                    // InterruptedException clears the flag, so still make a bounded
+                    // attempt to wait for the forcibly terminated process.
+                    process.waitFor(1500, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException secondInterrupt) {
+                    interrupted = true;
+                } catch (RuntimeException ignored) {
+                    // Preserve interruption and continue the worker's remaining cleanup.
+                }
             }
         } catch (RuntimeException ignored) {
-            try { process.destroyForcibly(); } catch (RuntimeException ignoredAgain) {}
+            try {
+                process.destroyForcibly();
+                try {
+                    process.waitFor(1500, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                }
+            } catch (RuntimeException ignoredAgain) {}
+        } finally {
+            if (interrupted) Thread.currentThread().interrupt();
         }
     }
 
