@@ -133,9 +133,14 @@ public class SolverService extends Service {
                     pb.environment().put("KANGAROO_DP_FILE",
                             new File(dir, "dp.json").getAbsolutePath());
                     pb.redirectErrorStream(true);
+                    appendLog(logF, "DP file before start: " + fileState(new File(dir, "dp.json")));
                     status = "ഓടുന്നു";
                     proc = pb.start();
                     appendLog(logF, "--- Solver process started: " + new java.util.Date() + " ---");
+                    long lastProgressAt = SystemClock.elapsedRealtime();
+                    String lastProgressDps = dps;
+                    long lastProgressOps = previousOps;
+                    boolean staleWarningLogged = false;
 
                     final Object eof = new Object();
                     final BlockingQueue<Object> outputLines = new LinkedBlockingQueue<>(1024);
@@ -173,7 +178,15 @@ public class SolverService extends Service {
                             if (proc != null) proc.destroy();
                             break;
                         }
-                        if (output == null) continue;
+                        if (output == null) {
+                            long now = SystemClock.elapsedRealtime();
+                            if (now - lastProgressAt >= 30000 && !staleWarningLogged) {
+                                status = "No telemetry/progress for 30s — engine may be stalled; not auto-stopped";
+                                appendLog(logF, status);
+                                staleWarningLogged = true;
+                            }
+                            continue;
+                        }
                         if (output == eof) {
                             outputEnded = true;
                             continue;
@@ -207,15 +220,23 @@ public class SolverService extends Service {
                             } else {
                                 speed = "—";
                             }
+                            String currentDpsText = m.group(2);
+                            if (currentOps != lastProgressOps || !currentDpsText.equals(lastProgressDps)) {
+                                lastProgressAt = now;
+                                lastProgressOps = currentOps;
+                                lastProgressDps = currentDpsText;
+                                staleWarningLogged = false;
+                            }
                             previousOps = currentOps;
                             previousOpsAt = now;
                             ops = m.group(1) + "M";
-                            dps = m.group(2);
+                            dps = currentDpsText;
                         }
                     }
                     if (proc != null) {
                         exitCode = proc.waitFor();
                         appendLog(logF, "Solver process exit code: " + exitCode);
+                        appendLog(logF, "DP file after exit: " + fileState(new File(dir, "dp.json")));
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -229,7 +250,7 @@ public class SolverService extends Service {
                     if (outputReader != null) outputReader.interrupt();
                     java.lang.Process current = proc;
                     proc = null;
-                    if (current != null && current.isAlive()) current.destroy();
+                    terminateProcess(current);
                 }
 
                 if (foundF.exists() && foundF.length() > 0) {
@@ -273,6 +294,22 @@ public class SolverService extends Service {
         }
     }
 
+
+    private static String fileState(File file) {
+        if (!file.exists()) return "missing";
+        return "exists, bytes=" + file.length() + ", modifiedMs=" + file.lastModified();
+    }
+
+    private static void terminateProcess(java.lang.Process process) {
+        if (process == null || !process.isAlive()) return;
+        try {
+            process.destroy();
+            if (process.isAlive()) process.destroyForcibly();
+        } catch (RuntimeException ignored) {
+            try { process.destroyForcibly(); } catch (RuntimeException ignoredAgain) {}
+        }
+    }
+
     private synchronized void releaseWakeLock() {
         if (wl != null) {
             try {
@@ -289,7 +326,7 @@ public class SolverService extends Service {
         running = false;
         status = "നിർത്തി";
         java.lang.Process current = proc;
-        if (current != null) current.destroy();
+        terminateProcess(current);
         Thread currentWorker = worker;
         if (currentWorker != null) currentWorker.interrupt();
         releaseWakeLock();
