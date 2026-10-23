@@ -170,7 +170,7 @@ public class SolverService extends Service {
                         temp = batt();
                         if (temp >= 45f) {
                             status = "High temperature; stopping engine temporarily";
-                            if (proc != null) proc.destroy();
+                            terminateProcess(proc);
                             break;
                         }
                         if (output == null) continue;
@@ -229,7 +229,7 @@ public class SolverService extends Service {
                     if (outputReader != null) outputReader.interrupt();
                     java.lang.Process current = proc;
                     proc = null;
-                    if (current != null && current.isAlive()) current.destroy();
+                    terminateProcess(current);
                 }
 
                 if (foundF.exists() && foundF.length() > 0) {
@@ -264,12 +264,23 @@ public class SolverService extends Service {
                     ? Math.max(elapsedMs, SystemClock.elapsedRealtime() - sessionStartMs) : elapsedMs;
             java.lang.Process current = proc;
             proc = null;
-            if (current != null && current.isAlive()) current.destroy();
+            terminateProcess(current);
             releaseWakeLock();
             try {
                 stopForeground(true);
             } catch (RuntimeException ignored) {}
             stopSelf();
+        }
+    }
+
+    private void terminateProcess(java.lang.Process process) {
+        if (process == null) return;
+        try {
+            if (process.isAlive()) process.destroy();
+            // If the native child ignores graceful termination, force it to exit.
+            if (process.isAlive()) process.destroyForcibly();
+        } catch (RuntimeException ignored) {
+            // Continue service cleanup if the child has already exited.
         }
     }
 
@@ -289,7 +300,7 @@ public class SolverService extends Service {
         running = false;
         status = "നിർത്തി";
         java.lang.Process current = proc;
-        if (current != null) current.destroy();
+        terminateProcess(current);
         Thread currentWorker = worker;
         if (currentWorker != null) currentWorker.interrupt();
         releaseWakeLock();
