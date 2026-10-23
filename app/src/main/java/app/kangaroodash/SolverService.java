@@ -15,21 +15,35 @@ public class SolverService extends Service {
     static volatile boolean running = false;
     private static volatile boolean workerBusy = false;
     private static volatile Thread activeWorker;
-    // Fail closed if the OS still reports a native solver process alive after
-    // bounded termination attempts. Do not permit a second engine to overlap it.
+    // Guard the cleanup-failure latch and its process reference as one state.
+    // A missing reference is not proof that the OS has reaped a stuck process.
+    private static final Object PROCESS_STATE_LOCK = new Object();
     private static volatile boolean nativeProcessCleanupFailed = false;
     private static volatile java.lang.Process stuckNativeProcess;
 
     static boolean isBusy() {
         Thread current = activeWorker;
-        java.lang.Process stuck = stuckNativeProcess;
-        if (nativeProcessCleanupFailed && (stuck == null || !stuck.isAlive())) {
-            // The OS has finally reaped the process; allow a later retry.
-            nativeProcessCleanupFailed = false;
-            stuckNativeProcess = null;
+        synchronized (PROCESS_STATE_LOCK) {
+            if (nativeProcessCleanupFailed) {
+                java.lang.Process stuck = stuckNativeProcess;
+                // Only clear the latch when the exact process we tracked is confirmed dead.
+                // If the reference is unexpectedly missing, fail closed rather than guessing.
+                if (stuck != null && !stuck.isAlive()) {
+                    stuckNativeProcess = null;
+                    nativeProcessCleanupFailed = false;
+                }
+            }
+            return running || workerBusy || nativeProcessCleanupFailed
+                    || (current != null && current.isAlive());
         }
-        return running || workerBusy || nativeProcessCleanupFailed
-                || (current != null && current.isAlive());
+    }
+
+    private static void markNativeProcessCleanupFailed(java.lang.Process process) {
+        synchronized (PROCESS_STATE_LOCK) {
+            // Publish the process reference before setting the latch, under the same lock.
+            stuckNativeProcess = process;
+            nativeProcessCleanupFailed = true;
+        }
     }
     static volatile String status = "നിർത്തി", ops = "-", dps = "-", found = "";
     static volatile int restarts = 0;
@@ -315,8 +329,7 @@ public class SolverService extends Service {
                         if (completedProcess.isAlive()) {
                             // Keep the safety latch set even after this worker exits:
                             // isBusy() must prevent a new engine from overlapping a stuck process.
-                            stuckNativeProcess = completedProcess;
-                            nativeProcessCleanupFailed = true;
+                            markNativeProcessCleanupFailed(completedProcess);
                             status = "Native process is still alive after forced termination; automatic restart disabled";
                             appendLog(logF, status);
                             running = false;
