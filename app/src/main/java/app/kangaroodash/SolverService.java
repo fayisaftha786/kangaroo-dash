@@ -296,8 +296,21 @@ public class SolverService extends Service {
                         }
                     }
                     if (proc != null) {
-                        exitCode = proc.waitFor();
-                        appendLog(logF, "Solver process exit code: " + exitCode);
+                        java.lang.Process completedProcess = proc;
+                        if (!completedProcess.waitFor(500, TimeUnit.MILLISECONDS)) {
+                            appendLog(logF, "Native process did not exit within 500ms; forcing termination");
+                            terminateProcess(completedProcess);
+                        }
+                        if (completedProcess.isAlive()) {
+                            // Do not enter the restart loop while a previous native engine
+                            // may still be alive; surface the failure and let final cleanup run.
+                            status = "Native process is still alive after forced termination; automatic restart disabled";
+                            appendLog(logF, status);
+                            running = false;
+                        } else {
+                            exitCode = completedProcess.exitValue();
+                            appendLog(logF, "Solver process exit code: " + exitCode);
+                        }
                         appendLog(logF, "DP file after exit: " + fileState(new File(dir, "dp.json")));
                     }
                 } catch (InterruptedException e) {
