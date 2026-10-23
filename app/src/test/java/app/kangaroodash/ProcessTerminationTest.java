@@ -12,6 +12,7 @@ public class ProcessTerminationTest {
     @Test public void returnsFalseForNullOrAlreadyExitedProcess() {
         assertFalse(SolverService.terminateProcess(null));
         FakeProcess exited = new FakeProcess(true, true);
+        exited.alive = false;
         assertFalse(SolverService.terminateProcess(exited));
         assertEquals(0, exited.destroyCalls);
     }
