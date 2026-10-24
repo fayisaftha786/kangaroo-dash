@@ -116,6 +116,12 @@ public class StorageInventoryTest {
     }
 
     private static void deleteTree(File file) {
+        // Never follow a symlink during test cleanup: deleting a temporary test
+        // directory must not recursively remove files outside that directory.
+        if (Files.isSymbolicLink(file.toPath())) {
+            file.delete();
+            return;
+        }
         File[] children = file.listFiles();
         if (children != null) {
             for (File child : children) deleteTree(child);
