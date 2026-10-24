@@ -471,6 +471,12 @@ public class MainActivity extends Activity {
     private void refresh() {
         statusText.setText(SolverService.status);
         boolean active = SolverService.running;
+        // Keep the display awake only while the solver is running and this Activity is visible.
+        if (active) {
+            getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        } else {
+            getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
         boolean busy = SolverService.isBusy();
         if (startButton != null) startButton.setEnabled(!busy);
         if (stopButton != null) stopButton.setEnabled(busy);
