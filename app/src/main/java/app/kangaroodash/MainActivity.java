@@ -188,8 +188,8 @@ public class MainActivity extends Activity {
         LinearLayout config = card();
         pub = field(config, "PUBLIC KEY (HEX) — ENTER VERIFIED TARGET",
             "");
-        // The key is longer than the visible field. Start at the prefix so the
-        // dashboard does not misleadingly show only the trailing characters.
+        // Keep the field ready for an explicitly verified target key.
+        // Do not prefill a generic curve generator and imply it is puzzle data.
         pub.setHorizontallyScrolling(true);
         pub.setSelection(0);
         start = field(config, "START (HEX)", 
