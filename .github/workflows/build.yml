@@ -33,24 +33,7 @@ jobs:
         run: |
           APK="app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
-          unzip -l "$APK" | grep -E 'lib/arm64-v8a/libkangaroo\.so
-        run: |
-          cd app/build/outputs/apk/debug
-          sha256sum app-debug.apk > app-debug.apk.sha256
-
-      - name: Verify APK SHA-256 checksum
-        run: |
-          cd app/build/outputs/apk/debug
-          sha256sum --check app-debug.apk.sha256
-
-      - name: Upload APK and checksum
-        uses: actions/upload-artifact@v7
-        with:
-          name: kangaroo-apk
-          path: |
-            app/build/outputs/apk/debug/app-debug.apk
-            app/build/outputs/apk/debug/app-debug.apk.sha256
-
+          unzip -l "$APK" | grep 'lib/arm64-v8a/libkangaroo.so'
           test "$(unzip -p "$APK" lib/arm64-v8a/libkangaroo.so | od -An -tx1 -N4 | tr -d ' \n')" = "7f454c46"
 
       - name: Generate APK SHA-256 checksum
