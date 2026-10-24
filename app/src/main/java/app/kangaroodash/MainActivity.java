@@ -511,9 +511,8 @@ public class MainActivity extends Activity {
                 ? SolverService.speed : "—";
         speedText.setText("Speed: " + liveSpeed);
 
-        tempText.setText(String.format(
-            java.util.Locale.US, "Battery temperature: %.1f°C", SolverService.temp
-        ));
+        tempText.setText("Battery temperature: "
+                + AppHealthCheck.formatTemperature(SolverService.temp));
 
         if (SolverService.found == null || SolverService.found.isEmpty()) {
             resultText.setText("");
