@@ -87,10 +87,30 @@ jobs:
 
       - name: Verify native engine is packaged for ARM64
         run: |
-          APK="app/build/outputs/apk/debug/app-debug.apk"
-          test -s "$APK"
-          unzip -l "$APK" | grep 'lib/arm64-v8a/libkangaroo.so'
-          test "$(unzip -p "$APK" lib/arm64-v8a/libkangaroo.so | od -An -tx1 -N4 | tr -d ' \n')" = "7f454c46"
+          python3 - <<'PY'
+          import struct
+          import zipfile
+
+          apk = "app/build/outputs/apk/debug/app-debug.apk"
+          native_path = "lib/arm64-v8a/libkangaroo.so"
+          with zipfile.ZipFile(apk) as archive:
+              try:
+                  data = archive.read(native_path)
+              except KeyError:
+                  raise SystemExit(f"Verification failed: {native_path} is missing from APK")
+          if len(data) < 20:
+              raise SystemExit("Verification failed: native library is too small for an ELF header")
+          if data[:4] != b"\\x7fELF":
+              raise SystemExit("Verification failed: native library does not have ELF magic")
+          if data[4] != 2:
+              raise SystemExit(f"Verification failed: expected ELF64 class (2), got {data[4]}")
+          if data[5] != 1:
+              raise SystemExit(f"Verification failed: expected little-endian ELF (1), got {data[5]}")
+          machine = struct.unpack_from("<H", data, 18)[0]
+          if machine != 183:
+              raise SystemExit(f"Verification failed: expected AArch64 e_machine=183, got {machine}")
+          print(f"Verified {native_path}: ELF64, little-endian, AArch64 (e_machine={machine})")
+          PY
 
       - name: Generate APK SHA-256 checksum
         run: |
