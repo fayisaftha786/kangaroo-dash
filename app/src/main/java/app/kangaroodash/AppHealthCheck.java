@@ -2,7 +2,6 @@ package app.kangaroodash;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
@@ -144,6 +143,9 @@ final class AppHealthCheck {
 
         File logFile = new File(filesDir, "scan.log");
         lines.add("INFO  Diagnostic log: " + fileState(logFile.exists(), logFile.exists() ? logFile.length() : 0));
+        lines.add("");
+        lines.add(StorageInventory.createReport(filesDir));
+        lines.add("");
         lines.add("INFO  Solver state: " + (SolverService.running ? "RUNNING" :
                 SolverService.isBusy() ? "STOPPING / CLEANUP IN PROGRESS" : "STOPPED"));
         lines.add("INFO  Android: " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + ")");
