@@ -260,20 +260,18 @@ public class SolverService extends Service {
                                 new InputStreamReader(currentProcess.getInputStream(), StandardCharsets.UTF_8))) {
                             String outputLine;
                             while ((outputLine = reader.readLine()) != null) {
-                                outputLines.put(outputLine);
+                                // Backpressure is bounded: stop/cancellation must not leave this
+                                // daemon blocked forever trying to enqueue another line.
+                                if (!offerOutputLine(outputLines, outputLine, () -> running)) break;
                             }
+                        } catch (InterruptedException interrupted) {
+                            Thread.currentThread().interrupt();
                         } catch (Exception readerError) {
-                            try {
-                                outputLines.put("Engine output reader error: " + safeMessage(readerError));
-                            } catch (InterruptedException ignored) {
-                                Thread.currentThread().interrupt();
-                            }
+                            offerOutputLine(outputLines,
+                                    "Engine output reader error: " + safeMessage(readerError), () -> running);
                         } finally {
-                            try {
-                                outputLines.put(eof);
-                            } catch (InterruptedException ignored) {
-                                Thread.currentThread().interrupt();
-                            }
+                            // EOF is best-effort during shutdown; never block cleanup on a full queue.
+                            offerOutputLine(outputLines, eof, () -> running);
                         }
                     }, "kangaroo-output-reader");
                     outputReader.setDaemon(true);
@@ -490,6 +488,21 @@ public class SolverService extends Service {
     private static String fileState(File file) {
         if (!file.exists()) return "missing";
         return "exists, bytes=" + file.length() + ", modifiedMs=" + file.lastModified();
+    }
+
+    // Queue insertion waits briefly for backpressure, but observes shutdown and interruption.
+    // Returns false when shutdown begins or the thread is interrupted before insertion succeeds.
+    static boolean offerOutputLine(BlockingQueue<Object> queue, Object value,
+            java.util.function.BooleanSupplier keepRunning) {
+        while (keepRunning.getAsBoolean() && !Thread.currentThread().isInterrupted()) {
+            try {
+                if (queue.offer(value, 100, TimeUnit.MILLISECONDS)) return true;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return false;
     }
 
     // Returns true only when the OS still reports the process alive after all bounded attempts.
