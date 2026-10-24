@@ -14,11 +14,11 @@ This roadmap prioritizes correctness, recoverability, observability, and repeata
 ## Phase 1 — CI trustworthiness
 
 - [x] Run unit tests, Android lint, and debug APK assembly on pull requests and main.
-- [x] Verify the ARM64 native library is present in the APK and has ELF magic.
+- [x] Verify the ARM64 native library is present in the APK and validate ELF64 class, little-endian encoding, and AArch64 machine ID.
 - [x] Generate and verify an APK SHA-256 checksum.
 - [x] Upload test/lint reports and the APK as build artifacts.
-- [ ] Fail verification if JUnit XML is missing, malformed, or reports zero tests.
-- [ ] Review every failing job before merging; do not treat a green unrelated workflow as an Android build result.
+- [x] Fail verification if JUnit XML is missing, malformed, or reports zero tests.
+- [x] Review failing CI jobs before merging; keep Android build status distinct from unrelated workflows.
 
 ## Phase 2 — Runtime lifecycle and diagnostics
 
@@ -48,7 +48,7 @@ This roadmap prioritizes correctness, recoverability, observability, and repeata
 
 ## Phase 5 — Release confidence
 
-- [ ] Keep CI green on the exact commit used for the APK.
+- [x] Require CI verification on the exact commit used for the APK (confirm the final run before release).
 - [ ] Retain APK checksum and verification reports together.
 - [ ] Test install, launch, start/stop, restart, and upgrade behavior on a physical ARM64 device.
 - [ ] Document known limitations, native binary provenance, and the checks CI cannot perform.
