@@ -264,8 +264,6 @@ public class SolverService extends Service {
                                 // daemon blocked forever trying to enqueue another line.
                                 if (!offerOutputLine(outputLines, outputLine, () -> running)) break;
                             }
-                        } catch (InterruptedException interrupted) {
-                            Thread.currentThread().interrupt();
                         } catch (Exception readerError) {
                             offerOutputLine(outputLines,
                                     "Engine output reader error: " + safeMessage(readerError), () -> running);
