@@ -71,6 +71,44 @@ public class StorageInventoryTest {
         }
     }
 
+    @Test public void stopsAtScanLimitAndClearlyMarksInventoryIncomplete() throws Exception {
+        File directory = Files.createTempDirectory("kangaroo-inventory-limit").toFile();
+        try {
+            for (int i = 0; i < 510; i++) {
+                write(new File(directory, String.format(java.util.Locale.ROOT, "item-%04d.bin", i)), "x");
+            }
+            String report = StorageInventory.createReport(directory);
+            assertTrue(report.contains("500 file(s)"));
+            assertTrue(report.contains("WARN  Scan limit reached (500 entries); inventory may be incomplete."));
+            assertTrue(report.contains("Directory listing failures: 0"));
+            assertTrue(new File(directory, "item-0509.bin").isFile());
+        } finally {
+            deleteTree(directory);
+        }
+    }
+
+    @Test public void skipsSymbolicLinksWithoutTraversingThem() throws Exception {
+        File directory = Files.createTempDirectory("kangaroo-inventory-symlink").toFile();
+        File targetDirectory = Files.createTempDirectory("kangaroo-inventory-target").toFile();
+        try {
+            File target = new File(targetDirectory, "hidden.bin");
+            write(target, "must remain untouched");
+            File link = new File(directory, "linked-directory");
+            try {
+                Files.createSymbolicLink(link.toPath(), targetDirectory.toPath());
+            } catch (UnsupportedOperationException | java.io.IOException | SecurityException e) {
+                org.junit.Assume.assumeNoException("Symbolic links unavailable in this environment", e);
+            }
+
+            String report = StorageInventory.createReport(directory);
+            assertFalse(report.contains("linked-directory/hidden.bin"));
+            assertTrue(target.isFile());
+        } finally {
+            deleteTree(directory);
+            deleteTree(targetDirectory);
+        }
+    }
+
     private static void write(File file, String value) throws Exception {
         try (FileOutputStream out = new FileOutputStream(file)) {
             out.write(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
