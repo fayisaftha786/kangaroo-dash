@@ -1,0 +1,25 @@
+package app.kangaroodash;
+
+/** Pure timing policy for reducing diagnostic I/O and thermal-sensor polling overhead. */
+final class SolverPerformancePolicy {
+    static final long BATTERY_TEMPERATURE_SAMPLE_INTERVAL_MS = 15_000L;
+    static final long TELEMETRY_LOG_INTERVAL_MS = 5_000L;
+    static final long NO_PREVIOUS_TELEMETRY_LOG = -1L;
+
+    private SolverPerformancePolicy() {}
+
+    static boolean isDue(long nowMs, long nextDueMs) {
+        return nextDueMs <= 0 || nowMs >= nextDueMs;
+    }
+
+    static long nextDueAt(long nowMs, long intervalMs) {
+        if (intervalMs <= 0) throw new IllegalArgumentException("interval must be positive");
+        if (nowMs > Long.MAX_VALUE - intervalMs) return Long.MAX_VALUE;
+        return nowMs + intervalMs;
+    }
+
+    static boolean shouldLogTelemetry(long nowMs, long lastLoggedAtMs) {
+        return lastLoggedAtMs < 0 || nowMs < lastLoggedAtMs
+                || nowMs - lastLoggedAtMs >= TELEMETRY_LOG_INTERVAL_MS;
+    }
+}

@@ -42,3 +42,20 @@ The Android UI validates the public key as a secp256k1 point and accepts the sol
 | DP persistence | UI reports file presence/size without claiming verification | Inspect native implementation and prove save/reload behavior across restarts |
 
 Run the automated checks with `./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon`. A green CI run confirms these repository checks passed; it does not independently verify the native algorithm, DP persistence, or real-device lifecycle behavior.
+
+
+## CPU, I/O and battery efficiency
+
+The Android service now checks battery temperature on a 15-second cadence instead of requesting a battery-temperature snapshot for every native output line. A hot reading still triggers the existing stop/pause behavior; the cadence change does not disable thermal protection.
+
+Recognized high-frequency `Ops/DPs` telemetry is written to `scan.log` immediately and then at most once per 5 seconds per native-process run. Dashboard counters and live speed continue to update for every recognized telemetry line. Non-telemetry engine output and important service/process events continue to be logged.
+
+This reduces repeated framework queries and log-file open/write/close operations during chatty solver output. It is a conservative overhead reduction, not a promise of higher native OPS: the native binary and actual device workload must be profiled to quantify CPU, memory, battery, and throughput changes.
+
+### Device benchmark protocol
+
+1. Use the same device, APK, target/configuration, charging state, screen state, and ambient temperature for each run.
+2. Record a 10-minute baseline and a 10-minute optimized run; repeat each at least three times after the device cools.
+3. Record solver-reported OPS/DPs, app CPU, process PSS/RSS, battery temperature, battery-level change, and log file growth.
+4. Compare medians, not the single best run. Stop if the device becomes uncomfortably hot or Android reports thermal warnings.
+5. Do not claim a performance improvement until device measurements confirm it. Automated unit tests verify timing policy, not real hardware performance.
