@@ -29,6 +29,28 @@ jobs:
       - name: Run tests, lint and build
         run: ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon
 
+      - name: Verify native engine is packaged for ARM64
+        run: |
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          unzip -l "$APK" | grep -E 'lib/arm64-v8a/libkangaroo\.so
+          sha256sum app-debug.apk > app-debug.apk.sha256
+
+      - name: Verify APK SHA-256 checksum
+        run: |
+          cd app/build/outputs/apk/debug
+          sha256sum --check app-debug.apk.sha256
+
+      - name: Upload APK and checksum
+        uses: actions/upload-artifact@v7
+        with:
+          name: kangaroo-apk
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/debug/app-debug.apk.sha256
+
+          unzip -p "$APK" lib/arm64-v8a/libkangaroo.so | head -c 4 | od -An -tx1 | grep -qi '7f 45 4c 46'
+
       - name: Generate APK SHA-256 checksum
         run: |
           cd app/build/outputs/apk/debug
