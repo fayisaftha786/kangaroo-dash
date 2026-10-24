@@ -40,13 +40,16 @@ jobs:
 
           files = glob.glob("app/build/test-results/testDebugUnitTest/TEST-*.xml")
           totals = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
+          parse_errors = []
           for path in files:
               try:
                   root = ET.parse(path).getroot()
                   for key in totals:
                       totals[key] += int(root.attrib.get(key, 0))
               except (ET.ParseError, OSError, ValueError) as exc:
-                  print(f"Could not parse {path}: {exc}")
+                  message = f"Could not parse {path}: {exc}"
+                  print(message)
+                  parse_errors.append(message)
           summary = (
               "## Android verification summary\n\n"
               f"- JUnit XML files found: **{len(files)}**\n"
@@ -62,6 +65,12 @@ jobs:
           print(summary)
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as out:
               out.write(summary)
+          if not files:
+              raise SystemExit("Verification failed: no JUnit XML reports were produced.")
+          if totals["tests"] <= 0:
+              raise SystemExit("Verification failed: JUnit reports contain zero tests.")
+          if parse_errors:
+              raise SystemExit("Verification failed: one or more JUnit XML reports could not be parsed.")
           PY
 
       - name: Upload test and lint reports
