@@ -4,6 +4,16 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class AppHealthCheckTest {
+    @Test public void formatsKnownBatteryTemperature() {
+        assertEquals("36.5°C", AppHealthCheck.formatTemperature(36.5f));
+    }
+
+    @Test public void reportsUnknownBatteryTemperatureHonestly() {
+        assertEquals("unavailable", AppHealthCheck.formatTemperature(Float.NaN));
+        assertEquals("unavailable", AppHealthCheck.formatTemperature(Float.POSITIVE_INFINITY));
+        assertEquals("unavailable", AppHealthCheck.formatTemperature(-0.1f));
+    }
+
     @Test public void reportsMissingAndEmptyFilesClearly() {
         assertEquals("MISSING", AppHealthCheck.fileState(false, 0));
         assertEquals("EMPTY", AppHealthCheck.fileState(true, 0));
