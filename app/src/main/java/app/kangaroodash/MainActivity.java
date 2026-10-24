@@ -186,8 +186,8 @@ public class MainActivity extends Activity {
         addSection(root, "System details", details);
 
         LinearLayout config = card();
-        pub = field(config, "PUBLIC KEY (HEX)",
-            "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798");
+        pub = field(config, "PUBLIC KEY (HEX) — ENTER VERIFIED TARGET",
+            "");
         // The key is longer than the visible field. Start at the prefix so the
         // dashboard does not misleadingly show only the trailing characters.
         pub.setHorizontallyScrolling(true);
