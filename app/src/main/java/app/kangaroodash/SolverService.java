@@ -289,7 +289,15 @@ public class SolverService extends Service {
                         if (temp >= 45f) {
                             status = "High temperature; stopping engine temporarily";
                             thermalStopRequested = true;
-                            terminateProcess(proc);
+                            java.lang.Process hotProcess = proc;
+                            if (terminateProcess(hotProcess)) {
+                                // Never resume after cooldown if the previous native process
+                                // could not be reaped: that could overlap two engine processes.
+                                markNativeProcessCleanupFailed(hotProcess);
+                                running = false;
+                                status = "Hot native process could not be stopped; automatic restart disabled";
+                                appendLog(logF, status);
+                            }
                             break;
                         }
                         long progressCheckAt = SystemClock.elapsedRealtime();
