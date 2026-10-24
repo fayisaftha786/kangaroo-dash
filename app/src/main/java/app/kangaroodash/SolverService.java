@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.*;
 
 public class SolverService extends Service {
-    static final int MAX_CONSECUTIVE_ENGINE_FAILURES = 3;
+    static final int MAX_ENGINE_FAILURES_PER_SESSION = 3;
     static volatile boolean running = false;
     private static volatile boolean workerBusy = false;
     private static volatile Thread activeWorker;
@@ -429,18 +429,18 @@ public class SolverService extends Service {
                     }
                     restarts++;
                     if (!SolverPerformancePolicy.shouldRetryAfterExit(
-                            restarts, MAX_CONSECUTIVE_ENGINE_FAILURES)) {
+                            restarts, MAX_ENGINE_FAILURES_PER_SESSION)) {
                         running = false;
-                        status = "Engine failed " + MAX_CONSECUTIVE_ENGINE_FAILURES
+                        status = "Engine failed " + MAX_ENGINE_FAILURES_PER_SESSION
                                 + " times; automatic restart stopped";
                         appendLog(logF, status);
                         break;
                     }
                     status = exitCode == Integer.MIN_VALUE
                             ? "Engine stopped unexpectedly; restart pending (" + restarts + "/"
-                                    + MAX_CONSECUTIVE_ENGINE_FAILURES + ")"
+                                    + MAX_ENGINE_FAILURES_PER_SESSION + ")"
                             : "Engine exited (" + exitCode + "); restart pending (" + restarts + "/"
-                                    + MAX_CONSECUTIVE_ENGINE_FAILURES + ")";
+                                    + MAX_ENGINE_FAILURES_PER_SESSION + ")";
                     appendLog(logF, status);
                     pause(30000);
                 }
