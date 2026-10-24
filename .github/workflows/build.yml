@@ -100,7 +100,7 @@ jobs:
                   raise SystemExit(f"Verification failed: {native_path} is missing from APK")
           if len(data) < 20:
               raise SystemExit("Verification failed: native library is too small for an ELF header")
-          if data[:4] != b"\\x7fELF":
+          if data[:4] != b"\x7fELF":
               raise SystemExit("Verification failed: native library does not have ELF magic")
           if data[4] != 2:
               raise SystemExit(f"Verification failed: expected ELF64 class (2), got {data[4]}")
