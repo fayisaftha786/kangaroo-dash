@@ -44,7 +44,7 @@ final class StorageInventory {
         }
 
         report.append(fileCount).append(" file(s), ")
-                .append(directoryCount).append(" director(y/ies), ")
+                .append(directoryCount).append(directoryCount == 1 ? " directory, " : " directories, ")
                 .append(AppHealthCheck.formatBytes(totalBytes)).append(" total file data.\n");
 
         int displayed = Math.min(entries.length, MAX_DISPLAYED_ENTRIES);
