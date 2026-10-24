@@ -183,6 +183,7 @@ public class SolverService extends Service {
         File logF = new File(dir, "scan.log");
         String bin = getApplicationInfo().nativeLibraryDir + "/libkangaroo.so";
         long previousOps = -1, previousOpsAt = 0;
+        long nextTemperatureCheckAt = 0;
 
         try {
             File engine = new File(bin);
@@ -201,10 +202,17 @@ public class SolverService extends Service {
                 boolean processVerified = false;
                 int exitCode = Integer.MIN_VALUE;
                 Thread outputReader = null;
-                temp = batt();
+                long thermalCheckNow = SystemClock.elapsedRealtime();
+                if (SolverPerformancePolicy.isDue(thermalCheckNow, nextTemperatureCheckAt)) {
+                    temp = batt();
+                    nextTemperatureCheckAt = SolverPerformancePolicy.nextDueAt(
+                            thermalCheckNow,
+                            SolverPerformancePolicy.BATTERY_TEMPERATURE_SAMPLE_INTERVAL_MS);
+                }
                 if (temp >= 45f) {
                     status = "തണുക്കുന്നു " + temp + "°C";
                     pause(30000);
+                    nextTemperatureCheckAt = 0;
                     continue;
                 }
 
@@ -226,6 +234,7 @@ public class SolverService extends Service {
                     }
                     appendLog(logF, "--- Solver process started: " + new java.util.Date() + " ---");
                     long lastProgressAt = SystemClock.elapsedRealtime();
+                    long lastTelemetryLogAt = SolverPerformancePolicy.NO_PREVIOUS_TELEMETRY_LOG;
                     String lastProgressDps = dps;
                     long lastProgressOps = previousOps;
                     boolean staleWarningLogged = false;
@@ -260,7 +269,13 @@ public class SolverService extends Service {
                     boolean outputEnded = false;
                     while (running && !Thread.currentThread().isInterrupted() && !outputEnded) {
                         Object output = outputLines.poll(5, TimeUnit.SECONDS);
-                        temp = batt();
+                        thermalCheckNow = SystemClock.elapsedRealtime();
+                        if (SolverPerformancePolicy.isDue(thermalCheckNow, nextTemperatureCheckAt)) {
+                            temp = batt();
+                            nextTemperatureCheckAt = SolverPerformancePolicy.nextDueAt(
+                                    thermalCheckNow,
+                                    SolverPerformancePolicy.BATTERY_TEMPERATURE_SAMPLE_INTERVAL_MS);
+                        }
                         if (temp >= 45f) {
                             status = "High temperature; stopping engine temporarily";
                             terminateProcess(proc);
@@ -285,11 +300,18 @@ public class SolverService extends Service {
                         }
                         line = line.replaceAll("\u001B\\[[0-9;]*m", "");
                         if (!line.trim().isEmpty() && !staleWarningLogged) status = "Engine: " + line.trim();
-                        appendLog(logF, line);
 
                         Matcher m = SolverTelemetry.find(line);
-                        if (m != null) {
+                        if (m == null) {
+                            // Preserve all non-telemetry diagnostics. High-frequency progress
+                            // records are sampled below to avoid reopening/writing the log per line.
+                            appendLog(logF, line);
+                        } else {
                             long now = SystemClock.elapsedRealtime();
+                            if (SolverPerformancePolicy.shouldLogTelemetry(now, lastTelemetryLogAt)) {
+                                appendLog(logF, line);
+                                lastTelemetryLogAt = now;
+                            }
                             lastTelemetryAtMs = now;
                             long currentOps;
                             try {
