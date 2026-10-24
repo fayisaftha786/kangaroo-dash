@@ -57,6 +57,11 @@ public class SolverPerformancePolicyTest {
                 baseline, SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS));
     }
 
+    @Test public void warningTextMatchesConfiguredWatchdogTimeout() {
+        assertEquals("No telemetry/progress for 150s — engine may be stalled; not auto-stopped",
+                SolverPerformancePolicy.noProgressWarningMessage());
+    }
+
     @Test public void noProgressWatchdogIgnoresClockBeforeBaseline() {
         assertFalse(SolverPerformancePolicy.shouldWarnNoProgress(true, 9_000, 10_000,
                 SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS));
