@@ -24,6 +24,7 @@ public class StorageInventoryTest {
             assertTrue(report.contains("[CORE] dp.json"));
             assertTrue(report.contains("[REVIEW ONLY] old-chunk.tmp"));
             assertTrue(report.contains("[PRESERVED] custom-state.bin"));
+            assertTrue(report.contains("Directory listing failures: 0"));
             assertTrue(report.contains("no files were deleted or changed"));
             assertTrue(dp.isFile());
             assertTrue(temporary.isFile());
@@ -64,6 +65,7 @@ public class StorageInventoryTest {
             String report = StorageInventory.createReport(directory);
             assertTrue(report.contains("45 file(s)"));
             assertTrue(report.contains("5 additional item(s) not displayed"));
+            assertTrue(report.contains("Directory listing failures: 0"));
         } finally {
             deleteTree(directory);
         }

@@ -1,7 +1,6 @@
 package app.kangaroodash;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -37,13 +36,25 @@ final class StorageInventory {
         int fileCount = 0;
         int directoryCount = 0;
         int reviewCount = 0;
+        int listingFailures = 0;
         long totalBytes = 0L;
         boolean truncated = false;
 
         while (!pending.isEmpty()) {
             Entry parent = pending.removeFirst();
-            File[] children = parent.file.listFiles();
-            if (children == null) continue;
+            File[] children;
+            try {
+                children = parent.file.listFiles();
+            } catch (SecurityException e) {
+                listingFailures++;
+                continue;
+            }
+            if (children == null) {
+                // File.listFiles() returns null when listing fails; do not silently
+                // present a partial inventory as complete.
+                listingFailures++;
+                continue;
+            }
             Arrays.sort(children, Comparator.comparing(File::getName, String.CASE_INSENSITIVE_ORDER));
 
             for (File child : children) {
@@ -105,7 +116,12 @@ final class StorageInventory {
             report.append("WARN  Scan limit reached (").append(MAX_SCANNED_ENTRIES)
                     .append(" entries); inventory may be incomplete.\n");
         }
-        report.append("Temporary/chunk-looking files for manual review: ").append(reviewCount).append(".\n")
+        if (listingFailures > 0) {
+            report.append("WARN  Could not list ").append(listingFailures)
+                    .append(" director(y/ies); inventory may be incomplete.\n");
+        }
+        report.append("Directory listing failures: ").append(listingFailures).append(".\n")
+                .append("Temporary/chunk-looking files for manual review: ").append(reviewCount).append(".\n")
                 .append("Limits: depth ").append(MAX_DEPTH).append(", entries ").append(MAX_SCANNED_ENTRIES).append(".\n")
                 .append("Safety: inventory only; no files were deleted or changed.");
         return report.toString();
