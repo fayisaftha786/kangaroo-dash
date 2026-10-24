@@ -4,6 +4,23 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class SolverPerformancePolicyTest {
+    @Test public void automaticRestartStopsAtConfiguredFailureLimit() {
+        assertTrue(SolverPerformancePolicy.shouldRetryAfterExit(1, 3));
+        assertTrue(SolverPerformancePolicy.shouldRetryAfterExit(2, 3));
+        assertFalse(SolverPerformancePolicy.shouldRetryAfterExit(3, 3));
+        assertFalse(SolverPerformancePolicy.shouldRetryAfterExit(4, 3));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsNegativeFailureCount() {
+        SolverPerformancePolicy.shouldRetryAfterExit(-1, 3);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsZeroRestartFailureLimit() {
+        SolverPerformancePolicy.shouldRetryAfterExit(0, 0);
+    }
+
     @Test public void thermalSampleIsDueAtStartAndAtDeadline() {
         assertTrue(SolverPerformancePolicy.isDue(0, 0));
         assertTrue(SolverPerformancePolicy.isDue(15_000, 15_000));
