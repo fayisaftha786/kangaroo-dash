@@ -39,6 +39,21 @@ public class InputValidationTest {
         assertFalse(MainActivity.isPublicKeyHex("05" + repeat('a', 128)));
     }
 
+    @Test public void acceptsStartValuesWithin256BitHexBounds() {
+        assertTrue(MainActivity.isValidStartValue("0"));
+        assertTrue(MainActivity.isValidStartValue("80000000000000000000000000000000000"));
+        assertTrue(MainActivity.isValidStartValue(repeat('f', 64)));
+        assertTrue(MainActivity.isValidStartValue(repeat('0', 64)));
+    }
+
+    @Test public void rejectsEmptyInvalidOrOversizedStartValues() {
+        assertFalse(MainActivity.isValidStartValue(null));
+        assertFalse(MainActivity.isValidStartValue(""));
+        assertFalse(MainActivity.isValidStartValue("0x1234"));
+        assertFalse(MainActivity.isValidStartValue("12 34"));
+        assertFalse(MainActivity.isValidStartValue(repeat('a', 65)));
+    }
+
     private static String repeat(char c, int count) {
         StringBuilder value = new StringBuilder(count);
         for (int i = 0; i < count; i++) value.append(c);
