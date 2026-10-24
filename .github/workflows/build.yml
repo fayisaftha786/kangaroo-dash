@@ -29,6 +29,13 @@ jobs:
       - name: Run tests, lint and build
         run: ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon
 
+      - name: Verify native engine is packaged for ARM64
+        run: |
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          unzip -l "$APK" | grep 'lib/arm64-v8a/libkangaroo.so'
+          test "$(unzip -p "$APK" lib/arm64-v8a/libkangaroo.so | od -An -tx1 -N4 | tr -d ' \n')" = "7f454c46"
+
       - name: Generate APK SHA-256 checksum
         run: |
           cd app/build/outputs/apk/debug
