@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.*;
 
 public class SolverService extends Service {
+    static final int MAX_CONSECUTIVE_ENGINE_FAILURES = 3;
     static volatile boolean running = false;
     private static volatile boolean workerBusy = false;
     private static volatile Thread activeWorker;
@@ -209,6 +210,7 @@ public class SolverService extends Service {
             while (running && !Thread.currentThread().isInterrupted()) {
                 boolean processVerified = false;
                 int exitCode = Integer.MIN_VALUE;
+                boolean thermalStopRequested = false;
                 Thread outputReader = null;
                 long thermalCheckNow = SystemClock.elapsedRealtime();
                 if (SolverPerformancePolicy.isDue(thermalCheckNow, nextTemperatureCheckAt)) {
@@ -286,6 +288,7 @@ public class SolverService extends Service {
                         }
                         if (temp >= 45f) {
                             status = "High temperature; stopping engine temporarily";
+                            thermalStopRequested = true;
                             terminateProcess(proc);
                             break;
                         }
@@ -419,10 +422,25 @@ public class SolverService extends Service {
                 }
 
                 if (running && !Thread.currentThread().isInterrupted()) {
+                    if (thermalStopRequested) {
+                        appendLog(logF, "Engine paused for high temperature; retrying after cooldown");
+                        pause(30000);
+                        continue;
+                    }
                     restarts++;
+                    if (!SolverPerformancePolicy.shouldRetryAfterExit(
+                            restarts, MAX_CONSECUTIVE_ENGINE_FAILURES)) {
+                        running = false;
+                        status = "Engine failed " + MAX_CONSECUTIVE_ENGINE_FAILURES
+                                + " times; automatic restart stopped";
+                        appendLog(logF, status);
+                        break;
+                    }
                     status = exitCode == Integer.MIN_VALUE
-                            ? "Engine stopped unexpectedly; restart pending"
-                            : "Engine exited (" + exitCode + "); restart pending";
+                            ? "Engine stopped unexpectedly; restart pending (" + restarts + "/"
+                                    + MAX_CONSECUTIVE_ENGINE_FAILURES + ")"
+                            : "Engine exited (" + exitCode + "); restart pending (" + restarts + "/"
+                                    + MAX_CONSECUTIVE_ENGINE_FAILURES + ")";
                     appendLog(logF, status);
                     pause(30000);
                 }
