@@ -229,6 +229,16 @@ public class MainActivity extends Activity {
         root.addView(diagnosticsButton, diagnosticsLp);
         diagnosticsButton.setOnClickListener(v -> showDiagnostics());
 
+        Button healthButton = new Button(this);
+        healthButton.setText("RUN APP HEALTH CHECK");
+        healthButton.setTextColor(TEAL);
+        healthButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        healthButton.setBackground(shape(0xFF173A3A, 14));
+        LinearLayout.LayoutParams healthLp = lp(-1, 50);
+        healthLp.topMargin = dp(10);
+        root.addView(healthButton, healthLp);
+        healthButton.setOnClickListener(v -> showHealthCenter());
+
         resultText = text("", 12, TEAL, false);
         resultText.setTextIsSelectable(true);
         LinearLayout.LayoutParams resultLp = lp(-1, -2);
@@ -430,6 +440,26 @@ public class MainActivity extends Activity {
                         clipboard.setPrimaryClip(
                                 ClipData.newPlainText("Kangaroo diagnostics", diagnosticText));
                         Toast.makeText(this, "Diagnostics copied to clipboard", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Clipboard unavailable", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Close", null)
+                .show();
+    }
+
+    private void showHealthCenter() {
+        final String report = AppHealthCheck.createReport(this);
+        new AlertDialog.Builder(this)
+                .setTitle("App Health Center")
+                .setMessage(report)
+                .setPositiveButton("Copy report", (dialog, which) -> {
+                    ClipboardManager clipboard =
+                            (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    if (clipboard != null) {
+                        clipboard.setPrimaryClip(
+                                ClipData.newPlainText("Kangaroo health report", report));
+                        Toast.makeText(this, "Health report copied", Toast.LENGTH_SHORT).show();
                     } else {
                         Toast.makeText(this, "Clipboard unavailable", Toast.LENGTH_SHORT).show();
                     }
