@@ -33,6 +33,22 @@ public class StorageInventoryTest {
         }
     }
 
+    @Test public void findsNestedChunkCandidatesWithoutDeletingThem() throws Exception {
+        File directory = Files.createTempDirectory("kangaroo-nested").toFile();
+        File nested = new File(directory, "cache/session-a");
+        assertTrue(nested.mkdirs());
+        File chunk = new File(nested, "chunk-004.bin");
+        try {
+            write(chunk, "preserve");
+            String report = StorageInventory.createReport(directory);
+            assertTrue(report.contains("[REVIEW ONLY] cache/session-a/chunk-004.bin"));
+            assertTrue(report.contains("Temporary/chunk-looking files for manual review: 1"));
+            assertTrue(chunk.isFile());
+        } finally {
+            deleteTree(directory);
+        }
+    }
+
     @Test public void handlesMissingDirectoryWithoutThrowing() {
         assertTrue(StorageInventory.createReport(null).contains("unavailable"));
         assertTrue(StorageInventory.createReport(new File("missing-kangaroo-dir"))
