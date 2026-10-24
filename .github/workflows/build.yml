@@ -34,6 +34,8 @@ jobs:
           APK="app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           unzip -l "$APK" | grep -E 'lib/arm64-v8a/libkangaroo\.so
+        run: |
+          cd app/build/outputs/apk/debug
           sha256sum app-debug.apk > app-debug.apk.sha256
 
       - name: Verify APK SHA-256 checksum
@@ -49,7 +51,7 @@ jobs:
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/apk/debug/app-debug.apk.sha256
 
-          unzip -p "$APK" lib/arm64-v8a/libkangaroo.so | head -c 4 | od -An -tx1 | grep -qi '7f 45 4c 46'
+          test "$(unzip -p "$APK" lib/arm64-v8a/libkangaroo.so | od -An -tx1 -N4 | tr -d ' \n')" = "7f454c46"
 
       - name: Generate APK SHA-256 checksum
         run: |
