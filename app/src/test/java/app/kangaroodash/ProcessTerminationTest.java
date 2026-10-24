@@ -17,6 +17,20 @@ public class ProcessTerminationTest {
         assertEquals(0, exited.destroyCalls);
     }
 
+    @Test public void closesNativeProcessOutputStreamDuringReaderCleanup() throws Exception {
+        FakeProcess process = new FakeProcess(true, true);
+        TrackingInputStream input = new TrackingInputStream();
+        process.inputStream = input;
+
+        SolverService.closeProcessOutputStream(process);
+
+        assertTrue("process output stream should be closed to unblock the reader", input.closed);
+    }
+
+    @Test public void safelyAcceptsNullProcessWhenClosingOutputStream() {
+        SolverService.closeProcessOutputStream(null);
+    }
+
     @Test public void acceptsGracefulTermination() {
         FakeProcess process = new FakeProcess(true, true);
         assertFalse(SolverService.terminateProcess(process));
@@ -123,8 +137,21 @@ public class ProcessTerminationTest {
         }
     }
 
+    private static final class TrackingInputStream extends InputStream {
+        boolean closed;
+
+        @Override public int read() {
+            return -1;
+        }
+
+        @Override public void close() {
+            closed = true;
+        }
+    }
+
     private static final class FakeProcess extends Process {
         private boolean alive;
+        InputStream inputStream = InputStream.nullInputStream();
         private final boolean exitsGracefully;
         private final boolean exitsForcibly;
         int destroyCalls;
@@ -142,7 +169,7 @@ public class ProcessTerminationTest {
         }
 
         @Override public OutputStream getOutputStream() { return OutputStream.nullOutputStream(); }
-        @Override public InputStream getInputStream() { return InputStream.nullInputStream(); }
+        @Override public InputStream getInputStream() { return inputStream; }
         @Override public InputStream getErrorStream() { return InputStream.nullInputStream(); }
 
         @Override public int waitFor() {
