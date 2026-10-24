@@ -517,7 +517,11 @@ public class MainActivity extends Activity {
         long telemetryAge = SolverService.lastTelemetryAtMs > 0
                 ? android.os.SystemClock.elapsedRealtime() - SolverService.lastTelemetryAtMs
                 : Long.MAX_VALUE;
-        String liveSpeed = SolverService.running && telemetryAge <= 5000
+        String liveSpeed = SolverService.running
+                && SolverPerformancePolicy.isTelemetryFresh(
+                        android.os.SystemClock.elapsedRealtime(),
+                        SolverService.lastTelemetryAtMs,
+                        SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS)
                 ? SolverService.speed : "—";
         speedText.setText("Speed: " + liveSpeed);
 

@@ -28,6 +28,16 @@ final class SolverPerformancePolicy {
         return nowMs + intervalMs;
     }
 
+    /**
+     * Native telemetry can arrive roughly every 100 seconds. Keep the last known
+     * speed visible until the same timeout used by the no-progress watchdog.
+     */
+    static boolean isTelemetryFresh(long nowMs, long lastTelemetryAtMs, long maxAgeMs) {
+        if (maxAgeMs <= 0) throw new IllegalArgumentException("maximum telemetry age must be positive");
+        return lastTelemetryAtMs > 0 && nowMs >= lastTelemetryAtMs
+                && nowMs - lastTelemetryAtMs <= maxAgeMs;
+    }
+
     static String noProgressWarningMessage() {
         return "No telemetry/progress for " + (NO_PROGRESS_TIMEOUT_MS / 1000)
                 + "s — engine may be stalled; not auto-stopped";

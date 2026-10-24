@@ -72,6 +72,27 @@ public class SolverPerformancePolicyTest {
         SolverPerformancePolicy.shouldWarnNoProgress(true, 10, 0, 0);
     }
 
+    @Test public void telemetryRemainsFreshAcrossExpectedNativeCadence() {
+        assertTrue(SolverPerformancePolicy.isTelemetryFresh(110_000, 10_000,
+                SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS));
+        assertTrue(SolverPerformancePolicy.isTelemetryFresh(160_000, 10_000,
+                SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS));
+        assertFalse(SolverPerformancePolicy.isTelemetryFresh(160_001, 10_000,
+                SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS));
+    }
+
+    @Test public void missingTelemetryAndBackwardsClockAreNotFresh() {
+        assertFalse(SolverPerformancePolicy.isTelemetryFresh(10_000, 0,
+                SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS));
+        assertFalse(SolverPerformancePolicy.isTelemetryFresh(9_000, 10_000,
+                SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void telemetryFreshnessRejectsInvalidMaximumAge() {
+        SolverPerformancePolicy.isTelemetryFresh(10_000, 1, 0);
+    }
+
     @Test public void telemetryIsLoggedImmediatelyThenAtMostEveryFiveSeconds() {
         assertTrue(SolverPerformancePolicy.shouldLogTelemetry(100,
                 SolverPerformancePolicy.NO_PREVIOUS_TELEMETRY_LOG));
