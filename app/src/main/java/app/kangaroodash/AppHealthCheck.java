@@ -87,39 +87,45 @@ final class AppHealthCheck {
             passed++;
         }
 
-        Intent battery = activity.registerReceiver(null,
-                new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-        if (battery != null) {
-            int tenths = battery.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
-            int level = battery.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-            int scale = battery.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-            if (tenths >= 0) {
-                float celsius = tenths / 10f;
-                if (celsius >= 45f) {
-                    lines.add(String.format(Locale.US,
-                            "WARN  Battery temperature: %.1f°C; pause heavy work and let device cool", celsius));
-                    warnings++;
+        try {
+            Intent battery = activity.registerReceiver(null,
+                    new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+            if (battery != null) {
+                int tenths = battery.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
+                int level = battery.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+                int scale = battery.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+                if (tenths >= 0) {
+                    float celsius = tenths / 10f;
+                    if (celsius >= 45f) {
+                        lines.add(String.format(Locale.US,
+                                "WARN  Battery temperature: %.1f°C; pause heavy work and let device cool", celsius));
+                        warnings++;
+                    } else {
+                        lines.add(String.format(Locale.US, "PASS  Battery temperature: %.1f°C", celsius));
+                        passed++;
+                    }
                 } else {
-                    lines.add(String.format(Locale.US, "PASS  Battery temperature: %.1f°C", celsius));
-                    passed++;
+                    lines.add("INFO  Battery temperature: unavailable");
+                }
+                if (level >= 0 && scale > 0) {
+                    int percent = Math.round(level * 100f / scale);
+                    if (percent < 15) {
+                        lines.add("WARN  Battery level is low: " + percent + "%");
+                        warnings++;
+                    } else {
+                        lines.add("PASS  Battery level: " + percent + "%");
+                        passed++;
+                    }
+                } else {
+                    lines.add("INFO  Battery level: unavailable");
                 }
             } else {
-                lines.add("INFO  Battery temperature: unavailable");
+                lines.add("INFO  Battery status: unavailable");
             }
-            if (level >= 0 && scale > 0) {
-                int percent = Math.round(level * 100f / scale);
-                if (percent < 15) {
-                    lines.add("WARN  Battery level is low: " + percent + "%");
-                    warnings++;
-                } else {
-                    lines.add("PASS  Battery level: " + percent + "%");
-                    passed++;
-                }
-            } else {
-                lines.add("INFO  Battery level: unavailable");
-            }
-        } else {
-            lines.add("INFO  Battery status: unavailable");
+        } catch (RuntimeException e) {
+            // Some OEM Android builds may reject a system-service query. Diagnostics
+            // must report unavailable data rather than crash the health dialog.
+            lines.add("INFO  Battery status: unavailable (" + e.getClass().getSimpleName() + ")");
         }
 
         File dpFile = new File(filesDir, "dp.json");
