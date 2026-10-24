@@ -28,6 +28,11 @@ final class SolverPerformancePolicy {
         return nowMs + intervalMs;
     }
 
+    static String noProgressWarningMessage() {
+        return "No telemetry/progress for " + (NO_PROGRESS_TIMEOUT_MS / 1000)
+                + "s — engine may be stalled; not auto-stopped";
+    }
+
     /** Watch for stalls only after search has started and a valid baseline timestamp exists. */
     static boolean shouldWarnNoProgress(boolean searchStarted, long nowMs,
             long lastProgressAtMs, long timeoutMs) {
