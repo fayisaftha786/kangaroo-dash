@@ -377,12 +377,18 @@ public class SolverService extends Service {
                         status = "Native process remains alive after loop cleanup; automatic restart disabled";
                         appendLog(logF, status);
                     }
+                    // Closing the process pipe helps unblock a reader stuck in readLine();
+                    // interrupt alone does not reliably cancel blocking stream I/O.
+                    closeProcessOutputStream(current);
                     if (outputReader != null) {
                         outputReader.interrupt();
                         try {
-                            outputReader.join(250);
+                            outputReader.join(500);
                         } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
+                        }
+                        if (outputReader.isAlive()) {
+                            appendLog(logF, "Output reader did not exit within 500ms after stream close");
                         }
                     }
                 }
@@ -441,6 +447,17 @@ public class SolverService extends Service {
 
     // Returns true only when the OS still reports the process alive after all bounded attempts.
     // Package-private so unit tests can exercise the shutdown contract with fake processes.
+    // Best-effort pipe close to unblock outputReader when it is blocked in readLine().
+    // This is intentionally separate from native-process termination state.
+    static void closeProcessOutputStream(java.lang.Process process) {
+        if (process == null) return;
+        try {
+            process.getInputStream().close();
+        } catch (IOException | RuntimeException ignored) {
+            // Cleanup must continue even if the process stream is already closed or broken.
+        }
+    }
+
     static boolean terminateProcess(java.lang.Process process) {
         if (process == null || !process.isAlive()) return false;
 
