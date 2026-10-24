@@ -306,7 +306,7 @@ public class SolverService extends Service {
                         long progressCheckAt = SystemClock.elapsedRealtime();
                         if (SolverPerformancePolicy.shouldWarnNoProgress(searchStarted,
                                 progressCheckAt, lastProgressAt, SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS) && !staleWarningLogged) {
-                            status = "No telemetry/progress for 30s — engine may be stalled; not auto-stopped";
+                            status = SolverPerformancePolicy.noProgressWarningMessage();
                             appendLog(logF, status);
                             staleWarningLogged = true;
                         }
