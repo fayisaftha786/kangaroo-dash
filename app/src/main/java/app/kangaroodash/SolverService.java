@@ -51,7 +51,7 @@ public class SolverService extends Service {
     static volatile String speed = "—";
     static volatile boolean resultVerified = false;
     static volatile long lastTelemetryAtMs = 0;
-    static volatile float temp = 0;
+    static volatile float temp = Float.NaN;
     volatile java.lang.Process proc;
     volatile Thread worker;
     private PowerManager.WakeLock wl;
@@ -157,8 +157,16 @@ public class SolverService extends Service {
     }
 
     float batt() {
-        Intent b = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-        return b == null ? 0 : b.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) / 10f;
+        try {
+            Intent battery = registerReceiver(null,
+                    new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+            if (battery == null) return Float.NaN;
+            int tenthsCelsius = battery.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
+            return tenthsCelsius < 0 ? Float.NaN : tenthsCelsius / 10f;
+        } catch (RuntimeException e) {
+            // OEM/system-service failures must not crash the worker. Unknown is not 0°C.
+            return Float.NaN;
+        }
     }
 
     private void pause(long ms) {

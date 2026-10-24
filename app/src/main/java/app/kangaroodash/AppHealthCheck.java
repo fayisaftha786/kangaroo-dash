@@ -24,6 +24,11 @@ final class AppHealthCheck {
         return length <= 0 ? "EMPTY" : "OK (" + formatBytes(length) + ")";
     }
 
+    static String formatTemperature(float celsius) {
+        if (!Float.isFinite(celsius) || celsius < 0f) return "unavailable";
+        return String.format(Locale.US, "%.1f°C", celsius);
+    }
+
     static String formatBytes(long bytes) {
         if (bytes < 1024) return Math.max(0, bytes) + " B";
         if (bytes < 1024L * 1024L) {
