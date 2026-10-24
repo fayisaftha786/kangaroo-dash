@@ -186,8 +186,18 @@ public class MainActivity extends Activity {
         addSection(root, "System details", details);
 
         LinearLayout config = card();
-        pub = field(config, "PUBLIC KEY (HEX)", 
+        pub = field(config, "PUBLIC KEY (HEX)",
             "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798");
+        TextView publicKeyHint = text("", 11, MUTED, false);
+        config.addView(publicKeyHint, lp(-1, -2));
+        refreshPublicKeyHint(publicKeyHint);
+        pub.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                refreshPublicKeyHint(publicKeyHint);
+            }
+            @Override public void afterTextChanged(android.text.Editable s) {}
+        });
         start = field(config, "START (HEX)", 
             "80000000000000000000000000000000000");
         range = field(config, "RANGE (BITS)", "139");
@@ -353,6 +363,28 @@ public class MainActivity extends Activity {
             new java.math.BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16);
     private static final java.math.BigInteger SECP256K1_SQRT_EXP =
             SECP256K1_P.add(java.math.BigInteger.ONE).shiftRight(2);
+
+    private void refreshPublicKeyHint(TextView hint) {
+        String value = pub.getText().toString().trim();
+        hint.setText(publicKeyHint(value));
+        hint.setTextColor(isPublicKeyHex(value) ? TEAL : MUTED);
+    }
+
+    static String publicKeyHint(String value) {
+        if (value == null || value.isEmpty()) {
+            return "Enter a public key: 66 hex characters (compressed) or 130 (uncompressed)";
+        }
+        int length = value.length();
+        if (length != 66 && length != 130) {
+            return length + " characters • expected 66 (compressed) or 130 (uncompressed); field scrolls horizontally";
+        }
+        if (!isPublicKeyHex(value)) {
+            return length + " characters • invalid secp256k1 public-key encoding or curve point";
+        }
+        return length + " hex characters • valid "
+                + (length == 66 ? "compressed" : "uncompressed")
+                + " secp256k1 point";
+    }
 
     static boolean isPublicKeyHex(String value) {
         if (!isHex(value)) return false;
