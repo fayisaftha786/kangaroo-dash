@@ -43,16 +43,23 @@ public class SolverPerformancePolicyTest {
     }
 
     @Test public void noProgressWatchdogDoesNotRunDuringGpuInitialization() {
-        assertFalse(SolverPerformancePolicy.shouldWarnNoProgress(false, 120_000, -1, 30_000));
+        assertFalse(SolverPerformancePolicy.shouldWarnNoProgress(false, 120_000, -1,
+                SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS));
     }
 
-    @Test public void noProgressWatchdogStartsAfterSearchBaselineAndDeadline() {
-        assertFalse(SolverPerformancePolicy.shouldWarnNoProgress(true, 39_999, 10_000, 30_000));
-        assertTrue(SolverPerformancePolicy.shouldWarnNoProgress(true, 40_000, 10_000, 30_000));
+    @Test public void noProgressWatchdogAllowsCurrentTelemetryCadence() {
+        long baseline = 10_000;
+        assertFalse(SolverPerformancePolicy.shouldWarnNoProgress(true, baseline + 102_000,
+                baseline, SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS));
+        assertFalse(SolverPerformancePolicy.shouldWarnNoProgress(true, baseline + 149_999,
+                baseline, SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS));
+        assertTrue(SolverPerformancePolicy.shouldWarnNoProgress(true, baseline + 150_000,
+                baseline, SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS));
     }
 
     @Test public void noProgressWatchdogIgnoresClockBeforeBaseline() {
-        assertFalse(SolverPerformancePolicy.shouldWarnNoProgress(true, 9_000, 10_000, 30_000));
+        assertFalse(SolverPerformancePolicy.shouldWarnNoProgress(true, 9_000, 10_000,
+                SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS));
     }
 
     @Test(expected = IllegalArgumentException.class)

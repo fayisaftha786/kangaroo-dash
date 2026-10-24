@@ -4,6 +4,9 @@ package app.kangaroodash;
 final class SolverPerformancePolicy {
     static final long BATTERY_TEMPERATURE_SAMPLE_INTERVAL_MS = 15_000L;
     static final long TELEMETRY_LOG_INTERVAL_MS = 5_000L;
+    // Native engine currently emits operation/DP telemetry roughly every 100 seconds.
+    // Allow for that cadence plus scheduling variance before reporting a possible stall.
+    static final long NO_PROGRESS_TIMEOUT_MS = 150_000L;
     static final long NO_PREVIOUS_TELEMETRY_LOG = -1L;
 
     private SolverPerformancePolicy() {}
