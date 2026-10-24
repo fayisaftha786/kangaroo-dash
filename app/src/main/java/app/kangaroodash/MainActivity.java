@@ -285,8 +285,8 @@ public class MainActivity extends Activity {
             statusText.setText("Invalid secp256k1 public key: check encoding and curve point");
             return;
         }
-        if (!isHex(startValue)) {
-            statusText.setText("Invalid start value: use hexadecimal characters only");
+        if (!isValidStartValue(startValue)) {
+            statusText.setText("Invalid start value: use 1–64 hexadecimal digits (up to 256 bits)");
             return;
         }
         try {
@@ -362,6 +362,12 @@ public class MainActivity extends Activity {
         } catch (NumberFormatException e) {
             return false;
         }
+    }
+
+    // The native engine's start value represents a secp256k1-sized integer.
+    // Accept 1–64 hexadecimal digits, while allowing leading zeroes.
+    static boolean isValidStartValue(String value) {
+        return value != null && value.length() <= 64 && isHex(value);
     }
 
     static boolean isHex(String value) {
