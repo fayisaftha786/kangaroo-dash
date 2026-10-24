@@ -473,7 +473,7 @@ public class MainActivity extends Activity {
         boolean active = SolverService.running;
         boolean busy = SolverService.isBusy();
         if (startButton != null) startButton.setEnabled(!busy);
-        if (stopButton != null) stopButton.setEnabled(active);
+        if (stopButton != null) stopButton.setEnabled(busy);
         liveBadge.setText(active ? "● RUNNING" : busy ? "● STOPPING" : "● STOPPED");
         liveBadge.setTextColor(active ? TEAL : MUTED);
         liveBadge.setBackground(shape(active ? 0xFF12362F : 0xFF252C3A, 30));
