@@ -243,7 +243,10 @@ public class SolverService extends Service {
                         break;
                     }
                     appendLog(logF, "--- Solver process started: " + new java.util.Date() + " ---");
-                    long lastProgressAt = SystemClock.elapsedRealtime();
+                    // GPU/context initialization can legitimately take a long time.
+                    // Arm the stall watchdog only once the native engine enters search.
+                    long lastProgressAt = -1L;
+                    boolean searchStarted = false;
                     long lastTelemetryLogAt = SolverPerformancePolicy.NO_PREVIOUS_TELEMETRY_LOG;
                     String lastProgressDps = dps;
                     long lastProgressOps = previousOps;
@@ -301,7 +304,8 @@ public class SolverService extends Service {
                             break;
                         }
                         long progressCheckAt = SystemClock.elapsedRealtime();
-                        if (progressCheckAt - lastProgressAt >= 30000 && !staleWarningLogged) {
+                        if (SolverPerformancePolicy.shouldWarnNoProgress(searchStarted,
+                                progressCheckAt, lastProgressAt, 30000L) && !staleWarningLogged) {
                             status = "No telemetry/progress for 30s — engine may be stalled; not auto-stopped";
                             appendLog(logF, status);
                             staleWarningLogged = true;
@@ -318,6 +322,11 @@ public class SolverService extends Service {
                             processVerified = false;
                         }
                         line = line.replaceAll("\u001B\\[[0-9;]*m", "");
+                        if (!searchStarted && line.contains("Starting search")) {
+                            searchStarted = true;
+                            lastProgressAt = SystemClock.elapsedRealtime();
+                            staleWarningLogged = false;
+                        }
                         if (!line.trim().isEmpty() && !staleWarningLogged) status = "Engine: " + line.trim();
 
                         Matcher m = SolverTelemetry.find(line);
@@ -332,6 +341,10 @@ public class SolverService extends Service {
                                 lastTelemetryLogAt = now;
                             }
                             lastTelemetryAtMs = now;
+                            if (!searchStarted) {
+                                searchStarted = true;
+                                lastProgressAt = now;
+                            }
                             long currentOps;
                             try {
                                 currentOps = Long.parseLong(m.group(1));
