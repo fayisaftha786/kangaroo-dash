@@ -39,6 +39,23 @@ public class ProcessTerminationTest {
         assertTrue(process.isAlive());
     }
 
+    @Test public void reportsProcessStillAliveWhenGracefulDestroyThrowsAndForceFails() {
+        FakeProcess process = new FakeProcess(true, false);
+        process.throwOnDestroy = true;
+        assertTrue(SolverService.terminateProcess(process));
+        assertEquals(1, process.destroyCalls);
+        assertEquals(1, process.forceCalls);
+        assertTrue(process.isAlive());
+    }
+
+    @Test public void forceTerminatesWhenGracefulDestroyThrows() {
+        FakeProcess process = new FakeProcess(true, true);
+        process.throwOnDestroy = true;
+        assertFalse(SolverService.terminateProcess(process));
+        assertEquals(1, process.destroyCalls);
+        assertEquals(1, process.forceCalls);
+    }
+
     @Test public void forceTerminatesAndRestoresInterruptWhenWaitIsInterrupted() {
         FakeProcess process = new FakeProcess(false, true);
         process.interruptOnFirstTimedWait = true;
@@ -88,6 +105,7 @@ public class ProcessTerminationTest {
         int forceCalls;
         boolean interruptOnFirstTimedWait;
         boolean interruptOnEveryTimedWait;
+        boolean throwOnDestroy;
         int timedWaitCalls;
 
         FakeProcess(boolean exitsGracefully, boolean exitsForcibly) {
@@ -120,6 +138,7 @@ public class ProcessTerminationTest {
 
         @Override public void destroy() {
             destroyCalls++;
+            if (throwOnDestroy) throw new IllegalStateException("simulated graceful destroy failure");
             if (exitsGracefully) alive = false;
         }
 
