@@ -15,7 +15,7 @@ public class StorageInventoryTest {
         File temporary = new File(directory, "old-chunk.tmp");
         File unknown = new File(directory, "custom-state.bin");
         try {
-            write(dp, "{\\"sample\\":1}");
+            write(dp, "{\"sample\":1}");
             write(temporary, "candidate");
             write(unknown, "keep me");
 
