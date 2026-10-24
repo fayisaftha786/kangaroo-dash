@@ -243,16 +243,6 @@ public class MainActivity extends Activity {
         root.addView(healthButton, healthLp);
         healthButton.setOnClickListener(v -> showHealthCenter());
 
-        Button puzzleDataButton = new Button(this);
-        puzzleDataButton.setText("CHECK PUZZLE DATA");
-        puzzleDataButton.setTextColor(TEXT);
-        puzzleDataButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        puzzleDataButton.setBackground(shape(0xFF252C3A, 14));
-        LinearLayout.LayoutParams puzzleDataLp = lp(-1, 50);
-        puzzleDataLp.topMargin = dp(10);
-        root.addView(puzzleDataButton, puzzleDataLp);
-        puzzleDataButton.setOnClickListener(v -> showPuzzleDataValidation());
-
         resultText = text("", 12, TEAL, false);
         resultText.setTextIsSelectable(true);
         LinearLayout.LayoutParams resultLp = lp(-1, -2);
@@ -454,77 +444,6 @@ public class MainActivity extends Activity {
                         clipboard.setPrimaryClip(
                                 ClipData.newPlainText("Kangaroo diagnostics", diagnosticText));
                         Toast.makeText(this, "Diagnostics copied to clipboard", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(this, "Clipboard unavailable", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("Close", null)
-                .show();
-    }
-
-    private void showPuzzleDataValidation() {
-        StringBuilder report = new StringBuilder("PUZZLE DATA VALIDATION\\n\\n");
-        boolean inputsValid = true;
-
-        String publicKey = pub.getText().toString().trim();
-        boolean keyValid = isPublicKeyHex(publicKey);
-        report.append(keyValid ? "[VALID] Public-key encoding and curve point\\n"
-                : "[INVALID] Public key: encoding or curve point is invalid\\n");
-        inputsValid &= keyValid;
-
-        String startValue = start.getText().toString().trim();
-        boolean startValid = isValidStartValue(startValue);
-        report.append(startValid ? "[VALID FORMAT] Start value is hexadecimal\\n"
-                : "[INVALID] Start value must be 1–64 hexadecimal digits\\n");
-        inputsValid &= startValid;
-
-        boolean numericValid = true;
-        try {
-            int rangeBits = Integer.parseInt(range.getText().toString().trim());
-            int dpBits = Integer.parseInt(dp.getText().toString().trim());
-            int count = Integer.parseInt(kangaroos.getText().toString().trim());
-            boolean rangeOk = rangeBits >= 1 && rangeBits <= 256;
-            boolean dpOk = dpBits >= 1 && dpBits <= 256;
-            boolean countOk = count >= 1 && count <= 4096;
-            report.append(rangeOk ? "[VALID FORMAT] Range field is within UI limits\\n"
-                    : "[INVALID] Range field must be 1–256\\n");
-            report.append(dpOk ? "[VALID FORMAT] DP bits field is within UI limits\\n"
-                    : "[INVALID] DP bits must be 1–256\\n");
-            report.append(countOk ? "[VALID FORMAT] Kangaroo count is within UI limits\\n"
-                    : "[INVALID] Kangaroo count must be 1–4096\\n");
-            numericValid = rangeOk && dpOk && countOk;
-        } catch (NumberFormatException e) {
-            report.append("[INVALID] Range, DP bits and kangaroo count must be whole numbers\\n");
-            numericValid = false;
-        }
-        inputsValid &= numericValid;
-
-        File dpFile = new File(getFilesDir(), "dp.json");
-        if (!dpFile.exists()) {
-            report.append("[UNVERIFIED] dp.json is missing; no stored DP file to inspect\\n");
-        } else if (!dpFile.isFile() || !dpFile.canRead()) {
-            report.append("[INVALID] dp.json is not a readable regular file\\n");
-            inputsValid = false;
-        } else if (dpFile.length() == 0) {
-            report.append("[INVALID] dp.json exists but is empty\\n");
-            inputsValid = false;
-        } else {
-            report.append("[UNVERIFIED] dp.json readable; size=" + dpFile.length()
-                    + " bytes. Native schema/content not verified\\n");
-        }
-
-        report.append("\\nOVERALL: ").append(inputsValid ? "INPUT FORMAT CHECK PASSED" : "INPUT ERRORS FOUND")
-                .append("\\n\\nIMPORTANT: This checks input format and file metadata only. It does not verify that the public key belongs to the intended puzzle, that the native engine can load/save this file, or that any reported result is correct.");
-
-        final String validationReport = report.toString();
-        new AlertDialog.Builder(this)
-                .setTitle("Puzzle Data Validation")
-                .setMessage(validationReport)
-                .setPositiveButton("Copy report", (dialog, which) -> {
-                    ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-                    if (clipboard != null) {
-                        clipboard.setPrimaryClip(ClipData.newPlainText("Puzzle data validation", validationReport));
-                        Toast.makeText(this, "Validation report copied", Toast.LENGTH_SHORT).show();
                     } else {
                         Toast.makeText(this, "Clipboard unavailable", Toast.LENGTH_SHORT).show();
                     }
