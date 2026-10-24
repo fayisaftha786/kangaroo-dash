@@ -8,7 +8,7 @@ final class SolverPerformancePolicy {
 
     private SolverPerformancePolicy() {}
 
-    /** Allow retries only while the consecutive failed-exit budget remains. */
+    /** Allow retries only while the per-session failed-exit budget remains. */
     static boolean shouldRetryAfterExit(int failedExits, int maxFailedExits) {
         if (failedExits < 0) throw new IllegalArgumentException("failed exits must not be negative");
         if (maxFailedExits < 1) throw new IllegalArgumentException("maximum failures must be positive");
