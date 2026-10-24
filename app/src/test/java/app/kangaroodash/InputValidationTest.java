@@ -27,10 +27,23 @@ public class InputValidationTest {
         assertTrue(MainActivity.isPublicKeyHex("04" + x + y));
     }
 
+    @Test public void acceptsUppercasePublicKeyHex() {
+        String x = "79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798";
+        String y = "483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8";
+        assertTrue(MainActivity.isPublicKeyHex("02" + x));
+        assertTrue(MainActivity.isPublicKeyHex("04" + x + y));
+    }
+
     @Test public void rejectsHexEncodedValuesThatAreNotCurvePoints() {
         assertFalse(MainActivity.isPublicKeyHex("02" + repeat('f', 64)));
         assertFalse(MainActivity.isPublicKeyHex("04" + repeat('0', 128)));
         assertFalse(MainActivity.isPublicKeyHex("04" + repeat('f', 64) + repeat('0', 64)));
+    }
+
+    @Test public void rejectsCoordinatesAtOrAboveFieldPrime() {
+        String p = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F";
+        assertFalse(MainActivity.isPublicKeyHex("02" + p));
+        assertFalse(MainActivity.isPublicKeyHex("04" + p + repeat('0', 64)));
     }
 
     @Test public void rejectsWrongPublicKeyPrefixOrLength() {
