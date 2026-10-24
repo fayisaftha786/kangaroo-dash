@@ -80,6 +80,22 @@ public class ProcessTerminationTest {
         }
     }
 
+    @Test public void restoresInterruptWhenForcedDestroyThrowsAfterInterruptedWait() {
+        FakeProcess process = new FakeProcess(false, false);
+        process.interruptOnFirstTimedWait = true;
+        process.throwOnForce = true;
+        try {
+            assertTrue(SolverService.terminateProcess(process));
+            assertEquals(1, process.destroyCalls);
+            assertEquals(1, process.forceCalls);
+            assertTrue("process remains alive when forced destroy throws", process.isAlive());
+            assertTrue("interrupt status must be restored even when forced destroy throws",
+                    Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
     @Test public void preservesInterruptWhenForcedTerminationWaitIsAlsoInterrupted() {
         FakeProcess process = new FakeProcess(false, true);
         process.interruptOnEveryTimedWait = true;
