@@ -42,6 +42,24 @@ public class SolverPerformancePolicyTest {
         SolverPerformancePolicy.nextDueAt(1, 0);
     }
 
+    @Test public void noProgressWatchdogDoesNotRunDuringGpuInitialization() {
+        assertFalse(SolverPerformancePolicy.shouldWarnNoProgress(false, 120_000, -1, 30_000));
+    }
+
+    @Test public void noProgressWatchdogStartsAfterSearchBaselineAndDeadline() {
+        assertFalse(SolverPerformancePolicy.shouldWarnNoProgress(true, 39_999, 10_000, 30_000));
+        assertTrue(SolverPerformancePolicy.shouldWarnNoProgress(true, 40_000, 10_000, 30_000));
+    }
+
+    @Test public void noProgressWatchdogIgnoresClockBeforeBaseline() {
+        assertFalse(SolverPerformancePolicy.shouldWarnNoProgress(true, 9_000, 10_000, 30_000));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void noProgressWatchdogRejectsInvalidTimeout() {
+        SolverPerformancePolicy.shouldWarnNoProgress(true, 10, 0, 0);
+    }
+
     @Test public void telemetryIsLoggedImmediatelyThenAtMostEveryFiveSeconds() {
         assertTrue(SolverPerformancePolicy.shouldLogTelemetry(100,
                 SolverPerformancePolicy.NO_PREVIOUS_TELEMETRY_LOG));
