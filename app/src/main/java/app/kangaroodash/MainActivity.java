@@ -1,6 +1,9 @@
 package app.kangaroodash;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -216,6 +219,16 @@ public class MainActivity extends Activity {
         actionLp.topMargin = dp(18);
         root.addView(actions, actionLp);
 
+        Button diagnosticsButton = new Button(this);
+        diagnosticsButton.setText("VIEW / COPY DIAGNOSTICS");
+        diagnosticsButton.setTextColor(TEXT);
+        diagnosticsButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        diagnosticsButton.setBackground(shape(0xFF252C3A, 14));
+        LinearLayout.LayoutParams diagnosticsLp = lp(-1, 50);
+        diagnosticsLp.topMargin = dp(10);
+        root.addView(diagnosticsButton, diagnosticsLp);
+        diagnosticsButton.setOnClickListener(v -> showDiagnostics());
+
         resultText = text("", 12, TEAL, false);
         resultText.setTextIsSelectable(true);
         LinearLayout.LayoutParams resultLp = lp(-1, -2);
@@ -380,6 +393,49 @@ public class MainActivity extends Activity {
             if (!digit && !lower && !upper) return false;
         }
         return true;
+    }
+
+    private void showDiagnostics() {
+        StringBuilder report = new StringBuilder();
+        report.append("Kangaroo local diagnostics\\n")
+                .append("Status: ").append(SolverService.status).append('\\n')
+                .append("Running: ").append(SolverService.running).append('\\n')
+                .append("Operations: ").append(SolverService.ops).append('\\n')
+                .append("Distinguished points: ").append(SolverService.dps).append('\\n')
+                .append("Android: ").append(Build.VERSION.RELEASE)
+                .append(" (API ").append(Build.VERSION.SDK_INT).append(")\\n")
+                .append("\\nReview this text before sharing; engine logs may contain target or configuration details.\\n");
+
+        File dir = getFilesDir();
+        try {
+            String current = DiagnosticLog.readTail(new File(dir, "scan.log"), 80);
+            report.append("\\n--- Current log (last 80 lines) ---\\n")
+                    .append(current.isEmpty() ? "No current log entries\\n" : current);
+            String backup = DiagnosticLog.readTail(new File(dir, "scan.log.1"), 40);
+            if (!backup.isEmpty()) {
+                report.append("\\n--- Previous log (last 40 lines) ---\\n").append(backup);
+            }
+        } catch (java.io.IOException e) {
+            report.append("\\nCould not read diagnostic log: ").append(e.getMessage());
+        }
+
+        final String diagnosticText = report.toString();
+        new AlertDialog.Builder(this)
+                .setTitle("Local diagnostics")
+                .setMessage(diagnosticText)
+                .setPositiveButton("Copy", (dialog, which) -> {
+                    ClipboardManager clipboard =
+                            (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    if (clipboard != null) {
+                        clipboard.setPrimaryClip(
+                                ClipData.newPlainText("Kangaroo diagnostics", diagnosticText));
+                        Toast.makeText(this, "Diagnostics copied to clipboard", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Clipboard unavailable", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Close", null)
+                .show();
     }
 
     private void refresh() {
