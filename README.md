@@ -24,3 +24,21 @@ be described as verified.
 Current status: **save/load behavior is unverified from the Android Java code alone**.
 Do not treat the DP storage size metric as proof that previously processed work is
 restored after restarting the app or engine.
+
+
+## Reliability update and validation boundaries
+
+The Android UI validates the public key as a secp256k1 point and accepts the solver start value only as 1–64 hexadecimal digits (up to 256 bits). This is input-shape validation; it does not prove that the native engine interprets every argument as intended.
+
+### Verification matrix
+
+| Area | Automated check | Device/native check still needed |
+| --- | --- | --- |
+| Public-key input | Compressed and uncompressed secp256k1 points; malformed/off-curve values | Confirm native CLI accepts the same encodings |
+| Start value | Empty, non-hex, 64-digit boundary, and over-256-bit input | Confirm the native engine's exact start-value semantics |
+| Telemetry | Valid progress records, malformed tokens, and integer overflow | Compare dashboard values with real engine output |
+| Diagnostic logs | UTF-8, bounded size, rotation, and oversized legacy files | Confirm useful logs are retained during real device failures |
+| Process cleanup | Graceful/forced termination, exceptions, repeated interrupts, and surviving process reporting | Stop/start, service recreation, and OS process cleanup on a physical Android device |
+| DP persistence | UI reports file presence/size without claiming verification | Inspect native implementation and prove save/reload behavior across restarts |
+
+Run the automated checks with `./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon`. A green CI run confirms these repository checks passed; it does not independently verify the native algorithm, DP persistence, or real-device lifecycle behavior.
