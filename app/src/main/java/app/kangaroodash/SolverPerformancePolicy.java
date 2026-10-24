@@ -25,6 +25,14 @@ final class SolverPerformancePolicy {
         return nowMs + intervalMs;
     }
 
+    /** Watch for stalls only after search has started and a valid baseline timestamp exists. */
+    static boolean shouldWarnNoProgress(boolean searchStarted, long nowMs,
+            long lastProgressAtMs, long timeoutMs) {
+        if (timeoutMs <= 0) throw new IllegalArgumentException("timeout must be positive");
+        return searchStarted && lastProgressAtMs >= 0 && nowMs >= lastProgressAtMs
+                && nowMs - lastProgressAtMs >= timeoutMs;
+    }
+
     static boolean shouldLogTelemetry(long nowMs, long lastLoggedAtMs) {
         return lastLoggedAtMs < 0 || nowMs < lastLoggedAtMs
                 || nowMs - lastLoggedAtMs >= TELEMETRY_LOG_INTERVAL_MS;
