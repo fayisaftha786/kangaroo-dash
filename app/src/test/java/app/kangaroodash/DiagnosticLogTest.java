@@ -116,6 +116,32 @@ public class DiagnosticLogTest {
         }
     }
 
+    @Test public void readsOnlyTheNewestRequestedLogLines() throws Exception {
+        File dir = Files.createTempDirectory("kangaroo-log-tail").toFile();
+        File log = new File(dir, "scan.log");
+        try {
+            DiagnosticLog.append(log, "first");
+            DiagnosticLog.append(log, "second");
+            DiagnosticLog.append(log, "third");
+            assertEquals("second" + System.lineSeparator() + "third" + System.lineSeparator(),
+                    DiagnosticLog.readTail(log, 2));
+        } finally {
+            if (log.exists()) log.delete();
+            dir.delete();
+        }
+    }
+
+    @Test public void missingOrNonPositiveTailRequestReturnsEmptyText() throws Exception {
+        File dir = Files.createTempDirectory("kangaroo-log-tail-empty").toFile();
+        try {
+            assertEquals("", DiagnosticLog.readTail(new File(dir, "missing.log"), 10));
+            assertEquals("", DiagnosticLog.readTail(new File(dir, "missing.log"), 0));
+            assertEquals("", DiagnosticLog.readTail(new File(dir, "missing.log"), -1));
+        } finally {
+            dir.delete();
+        }
+    }
+
     @Test public void nullMessageIsWrittenAsEmptyLine() throws Exception {
         File dir = Files.createTempDirectory("kangaroo-log-null").toFile();
         File log = new File(dir, "scan.log");
