@@ -463,19 +463,19 @@ public class MainActivity extends Activity {
     }
 
     private void showPuzzleDataValidation() {
-        StringBuilder report = new StringBuilder("PUZZLE DATA VALIDATION\\n\\n");
+        StringBuilder report = new StringBuilder("PUZZLE DATA VALIDATION\n\n");
         boolean inputsValid = true;
 
         String publicKey = pub.getText().toString().trim();
         boolean keyValid = isPublicKeyHex(publicKey);
-        report.append(keyValid ? "[VALID] Public-key encoding and curve point\\n"
-                : "[INVALID] Public key: encoding or curve point is invalid\\n");
+        report.append(keyValid ? "[VALID] Public-key encoding and curve point\n"
+                : "[INVALID] Public key: encoding or curve point is invalid\n");
         inputsValid &= keyValid;
 
         String startValue = start.getText().toString().trim();
         boolean startValid = isValidStartValue(startValue);
-        report.append(startValid ? "[VALID FORMAT] Start value is hexadecimal\\n"
-                : "[INVALID] Start value must be 1–64 hexadecimal digits\\n");
+        report.append(startValid ? "[VALID FORMAT] Start value is hexadecimal\n"
+                : "[INVALID] Start value must be 1–64 hexadecimal digits\n");
         inputsValid &= startValid;
 
         boolean numericValid = true;
@@ -486,35 +486,35 @@ public class MainActivity extends Activity {
             boolean rangeOk = rangeBits >= 1 && rangeBits <= 256;
             boolean dpOk = dpBits >= 1 && dpBits <= 256;
             boolean countOk = count >= 1 && count <= 4096;
-            report.append(rangeOk ? "[VALID FORMAT] Range field is within UI limits\\n"
-                    : "[INVALID] Range field must be 1–256\\n");
-            report.append(dpOk ? "[VALID FORMAT] DP bits field is within UI limits\\n"
-                    : "[INVALID] DP bits must be 1–256\\n");
-            report.append(countOk ? "[VALID FORMAT] Kangaroo count is within UI limits\\n"
-                    : "[INVALID] Kangaroo count must be 1–4096\\n");
+            report.append(rangeOk ? "[VALID FORMAT] Range field is within UI limits\n"
+                    : "[INVALID] Range field must be 1–256\n");
+            report.append(dpOk ? "[VALID FORMAT] DP bits field is within UI limits\n"
+                    : "[INVALID] DP bits must be 1–256\n");
+            report.append(countOk ? "[VALID FORMAT] Kangaroo count is within UI limits\n"
+                    : "[INVALID] Kangaroo count must be 1–4096\n");
             numericValid = rangeOk && dpOk && countOk;
         } catch (NumberFormatException e) {
-            report.append("[INVALID] Range, DP bits and kangaroo count must be whole numbers\\n");
+            report.append("[INVALID] Range, DP bits and kangaroo count must be whole numbers\n");
             numericValid = false;
         }
         inputsValid &= numericValid;
 
         File dpFile = new File(getFilesDir(), "dp.json");
         if (!dpFile.exists()) {
-            report.append("[UNVERIFIED] dp.json is missing; no stored DP file to inspect\\n");
+            report.append("[UNVERIFIED] dp.json is missing; no stored DP file to inspect\n");
         } else if (!dpFile.isFile() || !dpFile.canRead()) {
-            report.append("[INVALID] dp.json is not a readable regular file\\n");
+            report.append("[INVALID] dp.json is not a readable regular file\n");
             inputsValid = false;
         } else if (dpFile.length() == 0) {
-            report.append("[INVALID] dp.json exists but is empty\\n");
+            report.append("[INVALID] dp.json exists but is empty\n");
             inputsValid = false;
         } else {
             report.append("[UNVERIFIED] dp.json readable; size=" + dpFile.length()
-                    + " bytes. Native schema/content not verified\\n");
+                    + " bytes. Native schema/content not verified\n");
         }
 
-        report.append("\\nOVERALL: ").append(inputsValid ? "INPUT FORMAT CHECK PASSED" : "INPUT ERRORS FOUND")
-                .append("\\n\\nIMPORTANT: This checks input format and file metadata only. It does not verify that the public key belongs to the intended puzzle, that the native engine can load/save this file, or that any reported result is correct.");
+        report.append("\nOVERALL: ").append(inputsValid ? "INPUT FORMAT CHECK PASSED" : "INPUT ERRORS FOUND")
+                .append("\n\nIMPORTANT: This checks input format and file metadata only. It does not verify that the public key belongs to the intended puzzle, that the native engine can load/save this file, or that any reported result is correct.");
 
         final String validationReport = report.toString();
         new AlertDialog.Builder(this)
