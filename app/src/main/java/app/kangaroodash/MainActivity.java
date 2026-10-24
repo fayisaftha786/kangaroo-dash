@@ -397,26 +397,26 @@ public class MainActivity extends Activity {
 
     private void showDiagnostics() {
         StringBuilder report = new StringBuilder();
-        report.append("Kangaroo local diagnostics\\n")
-                .append("Status: ").append(SolverService.status).append('\\n')
-                .append("Running: ").append(SolverService.running).append('\\n')
-                .append("Operations: ").append(SolverService.ops).append('\\n')
-                .append("Distinguished points: ").append(SolverService.dps).append('\\n')
+        report.append("Kangaroo local diagnostics\n")
+                .append("Status: ").append(SolverService.status).append('\n')
+                .append("Running: ").append(SolverService.running).append('\n')
+                .append("Operations: ").append(SolverService.ops).append('\n')
+                .append("Distinguished points: ").append(SolverService.dps).append('\n')
                 .append("Android: ").append(Build.VERSION.RELEASE)
-                .append(" (API ").append(Build.VERSION.SDK_INT).append(")\\n")
-                .append("\\nReview this text before sharing; engine logs may contain target or configuration details.\\n");
+                .append(" (API ").append(Build.VERSION.SDK_INT).append(")\n")
+                .append("\nReview this text before sharing; engine logs may contain target or configuration details.\n");
 
         File dir = getFilesDir();
         try {
             String current = DiagnosticLog.readTail(new File(dir, "scan.log"), 80);
-            report.append("\\n--- Current log (last 80 lines) ---\\n")
-                    .append(current.isEmpty() ? "No current log entries\\n" : current);
+            report.append("\n--- Current log (last 80 lines) ---\n")
+                    .append(current.isEmpty() ? "No current log entries\n" : current);
             String backup = DiagnosticLog.readTail(new File(dir, "scan.log.1"), 40);
             if (!backup.isEmpty()) {
-                report.append("\\n--- Previous log (last 40 lines) ---\\n").append(backup);
+                report.append("\n--- Previous log (last 40 lines) ---\n").append(backup);
             }
         } catch (java.io.IOException e) {
-            report.append("\\nCould not read diagnostic log: ").append(e.getMessage());
+            report.append("\nCould not read diagnostic log: ").append(e.getMessage());
         }
 
         final String diagnosticText = report.toString();
