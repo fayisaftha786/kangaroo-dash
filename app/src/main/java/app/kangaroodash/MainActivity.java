@@ -15,11 +15,11 @@ import android.widget.*;
 import java.io.File;
 
 public class MainActivity extends Activity {
-    private final int BG = 0xFF0B1020;
-    private final int CARD = 0xFF151E31;
-    private final int TEXT = 0xFFF1F5F9;
-    private final int MUTED = 0xFF9AA9C0;
-    private final int TEAL = 0xFF42E8C5;
+    private final int BG = 0xFF080D1A;
+    private final int CARD = 0xFF111A2E;
+    private final int TEXT = 0xFFF7FAFF;
+    private final int MUTED = 0xFFA2B0CA;
+    private final int TEAL = 0xFF8B7CFF;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private TextView statusText, opsText, dpsText, storageText;
@@ -85,7 +85,7 @@ public class MainActivity extends Activity {
         e.setTextColor(TEXT);
         e.setHintTextColor(MUTED);
         e.setPadding(dp(12), dp(9), dp(12), dp(9));
-        e.setBackground(shape(0xFF0B1324, 10));
+        e.setBackground(shape(0xFF090F20, 10));
         parent.addView(e, lp(-1, 46));
         gap(parent, 12);
         return e;
@@ -134,18 +134,18 @@ public class MainActivity extends Activity {
         header.setGravity(Gravity.CENTER_VERTICAL);
 
         LinearLayout brand = column();
-        brand.addView(text("KANGAROO", 12, TEAL, true));
-        TextView heading = text("Solver Dashboard", 25, TEXT, true);
+        brand.addView(text("KANGAROO  /  CONTROL CENTER", 12, TEAL, true));
+        TextView heading = text("Kangaroo Dashboard", 25, TEXT, true);
         LinearLayout.LayoutParams headingLp = lp(-1, -2);
         headingLp.topMargin = dp(5);
         brand.addView(heading, headingLp);
-        brand.addView(text("Native engine • Live monitor", 12, MUTED, false));
+        brand.addView(text("NATIVE ENGINE  •  LIVE MONITOR", 12, MUTED, false));
 
         header.addView(brand, new LinearLayout.LayoutParams(0, -2, 1f));
         liveBadge = text("● STOPPED", 11, MUTED, true);
         TextView badge = liveBadge;
         badge.setPadding(dp(10), dp(8), dp(10), dp(8));
-        badge.setBackground(shape(0xFF12362F, 30));
+        badge.setBackground(shape(0xFF25204B, 30));
         header.addView(badge);
         root.addView(header);
 
@@ -206,7 +206,7 @@ public class MainActivity extends Activity {
 
         startButton = new Button(this);
         startButton.setText("▶  START");
-        startButton.setTextColor(0xFF071A18);
+        startButton.setTextColor(0xFF100C2B);
         startButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         startButton.setBackground(shape(TEAL, 14));
         actions.addView(startButton, new LinearLayout.LayoutParams(0, dp(54), 1f));
@@ -218,7 +218,7 @@ public class MainActivity extends Activity {
         stopButton.setText("■  STOP");
         stopButton.setTextColor(TEXT);
         stopButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        stopButton.setBackground(shape(0xFF343044, 14));
+        stopButton.setBackground(shape(0xFF34264A, 14));
         actions.addView(stopButton, new LinearLayout.LayoutParams(0, dp(54), 1f));
 
         LinearLayout.LayoutParams actionLp = lp(-1, -2);
@@ -229,7 +229,7 @@ public class MainActivity extends Activity {
         diagnosticsButton.setText("VIEW / COPY DIAGNOSTICS");
         diagnosticsButton.setTextColor(TEXT);
         diagnosticsButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        diagnosticsButton.setBackground(shape(0xFF252C3A, 14));
+        diagnosticsButton.setBackground(shape(0xFF1C2942, 14));
         LinearLayout.LayoutParams diagnosticsLp = lp(-1, 50);
         diagnosticsLp.topMargin = dp(10);
         root.addView(diagnosticsButton, diagnosticsLp);
@@ -239,7 +239,7 @@ public class MainActivity extends Activity {
         exportButton.setText("EXPORT dp.json / scan.log");
         exportButton.setTextColor(TEAL);
         exportButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        exportButton.setBackground(shape(0xFF173A3A, 14));
+        exportButton.setBackground(shape(0xFF25204B, 14));
         LinearLayout.LayoutParams exportLp = lp(-1, 50);
         exportLp.topMargin = dp(10);
         root.addView(exportButton, exportLp);
@@ -249,7 +249,7 @@ public class MainActivity extends Activity {
         healthButton.setText("RUN APP HEALTH CHECK");
         healthButton.setTextColor(TEAL);
         healthButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        healthButton.setBackground(shape(0xFF173A3A, 14));
+        healthButton.setBackground(shape(0xFF25204B, 14));
         LinearLayout.LayoutParams healthLp = lp(-1, 50);
         healthLp.topMargin = dp(10);
         root.addView(healthButton, healthLp);
@@ -259,7 +259,7 @@ public class MainActivity extends Activity {
         puzzleDataButton.setText("CHECK PUZZLE DATA");
         puzzleDataButton.setTextColor(TEXT);
         puzzleDataButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        puzzleDataButton.setBackground(shape(0xFF252C3A, 14));
+        puzzleDataButton.setBackground(shape(0xFF1C2942, 14));
         LinearLayout.LayoutParams puzzleDataLp = lp(-1, 50);
         puzzleDataLp.topMargin = dp(10);
         root.addView(puzzleDataButton, puzzleDataLp);
@@ -272,7 +272,7 @@ public class MainActivity extends Activity {
         root.addView(resultText, resultLp);
 
         TextView footer = text(
-            "Kangaroo • Local device monitoring", 11, MUTED, false
+            "KANGAROO  •  DEVICE CONTROL & MONITORING", 11, MUTED, false
         );
         footer.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams footerLp = lp(-1, -2);
@@ -579,7 +579,7 @@ public class MainActivity extends Activity {
         if (stopButton != null) stopButton.setEnabled(busy);
         liveBadge.setText(active ? "● RUNNING" : busy ? "● STOPPING" : "● STOPPED");
         liveBadge.setTextColor(active ? TEAL : MUTED);
-        liveBadge.setBackground(shape(active ? 0xFF12362F : 0xFF252C3A, 30));
+        liveBadge.setBackground(shape(active ? 0xFF25204B : 0xFF1C2942, 30));
         opsText.setText(SolverService.ops);
         dpsText.setText(SolverService.dps);
 
