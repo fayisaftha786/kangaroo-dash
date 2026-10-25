@@ -359,8 +359,11 @@ public class MainActivity extends Activity {
                 String state = record.optString("status", "unknown");
                 boolean hasKey = record.opt("public_key") instanceof String
                         && isPublicKeyHex(record.optString("public_key", ""));
-                labels.add("#" + id + " • " + bits + "-bit • " + state
-                        + (hasKey ? "" : " • no public key"));
+                int searchBits = record.optInt("search_bits", -1);
+                boolean supportedRange = searchBits >= 1 && searchBits <= 256;
+                String availability = !hasKey ? " • no usable public key"
+                        : !supportedRange ? " • metadata only (no supported range)" : "";
+                labels.add("#" + id + " • " + bits + "-bit • " + state + availability);
             }
             ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                     android.R.layout.simple_spinner_item, labels);
