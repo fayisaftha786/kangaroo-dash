@@ -27,6 +27,8 @@ public class MainActivity extends Activity {
     private EditText pub, start, range, dp, kangaroos;
     private Button startButton, stopButton;
     private TextView liveBadge;
+    private static final int REQUEST_EXPORT_FILE = 7101;
+    private String pendingExportName;
 
     private int dp(int n) {
         return (int) (n * getResources().getDisplayMetrics().density + 0.5f);
@@ -232,6 +234,16 @@ public class MainActivity extends Activity {
         diagnosticsLp.topMargin = dp(10);
         root.addView(diagnosticsButton, diagnosticsLp);
         diagnosticsButton.setOnClickListener(v -> showDiagnostics());
+
+        Button exportButton = new Button(this);
+        exportButton.setText("EXPORT dp.json / scan.log");
+        exportButton.setTextColor(TEAL);
+        exportButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        exportButton.setBackground(shape(0xFF173A3A, 14));
+        LinearLayout.LayoutParams exportLp = lp(-1, 50);
+        exportLp.topMargin = dp(10);
+        root.addView(exportButton, exportLp);
+        exportButton.setOnClickListener(v -> chooseExportFile());
 
         Button healthButton = new Button(this);
         healthButton.setText("RUN APP HEALTH CHECK");
@@ -613,6 +625,70 @@ public class MainActivity extends Activity {
             resultText.setText("");
         } else {
             resultText.setText("RESULT\n" + SolverService.found);
+        }
+    }
+
+
+    private void chooseExportFile() {
+        final String[] names = {"dp.json", "scan.log"};
+        new AlertDialog.Builder(this)
+                .setTitle("Export a private app file")
+                .setItems(names, (dialog, which) -> {
+                    pendingExportName = names[which];
+                    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType("application/octet-stream");
+                    intent.putExtra(Intent.EXTRA_TITLE, pendingExportName);
+                    try {
+                        startActivityForResult(intent, REQUEST_EXPORT_FILE);
+                    } catch (android.content.ActivityNotFoundException e) {
+                        pendingExportName = null;
+                        Toast.makeText(this,
+                                "No file picker is available on this device",
+                                Toast.LENGTH_LONG).show();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQUEST_EXPORT_FILE) return;
+
+        String filename = pendingExportName;
+        pendingExportName = null;
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) {
+            return;
+        }
+        if (!"dp.json".equals(filename) && !"scan.log".equals(filename)) {
+            Toast.makeText(this, "Invalid export selection", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        File source = new File(getFilesDir(), filename);
+        if (!source.isFile() || !source.canRead()) {
+            Toast.makeText(this, filename + " is missing or unreadable",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        try (java.io.InputStream in = new java.io.FileInputStream(source);
+             java.io.OutputStream out =
+                     getContentResolver().openOutputStream(data.getData(), "w")) {
+            if (out == null) throw new java.io.IOException("Could not open destination");
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = in.read(buffer)) != -1) {
+                out.write(buffer, 0, count);
+            }
+            out.flush();
+            Toast.makeText(this, filename + " exported",
+                    Toast.LENGTH_LONG).show();
+        } catch (java.io.IOException e) {
+            Toast.makeText(this, "Export failed: " + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
         }
     }
 
