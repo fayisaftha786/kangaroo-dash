@@ -369,7 +369,18 @@ public class MainActivity extends Activity {
                     android.R.layout.simple_spinner_item, labels);
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             puzzleSpinner.setAdapter(adapter);
-            puzzleHint.setText(puzzleEntries.size() + " catalog records loaded. Selection does not start the engine.");
+            puzzleSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override public void onItemSelected(
+                        AdapterView<?> parent, View view, int position, long id) {
+                    // Selecting a catalog entry loads its fields; it never starts the engine.
+                    applySelectedPuzzle();
+                }
+
+                @Override public void onNothingSelected(AdapterView<?> parent) {
+                    puzzleHint.setText("Choose a catalog record.");
+                }
+            });
+            puzzleHint.setText(puzzleEntries.size() + " catalog records loaded. Selecting a record loads its fields; the engine starts only when START is pressed.");
         } catch (Exception e) {
             puzzleEntries.clear();
             puzzleHint.setText("Catalog unavailable: " + e.getClass().getSimpleName());
@@ -390,6 +401,12 @@ public class MainActivity extends Activity {
         int id = record.optInt("id", -1);
         String state = record.optString("status", "unknown");
 
+        // Clear previously loaded catalog values so an invalid selection cannot
+        // leave a different puzzle's key/range visible as if it belonged here.
+        pub.setText("");
+        start.setText("");
+        range.setText("");
+
         if (!isPublicKeyHex(key)) {
             puzzleHint.setText("Puzzle #" + id + " has no usable public key; nothing was changed.");
             return;
@@ -407,7 +424,6 @@ public class MainActivity extends Activity {
         start.setText(startHex);
         range.setText(Integer.toString(rangeBits));
         puzzleHint.setText("Loaded Puzzle #" + id + " (" + state + "). Review the key/range, then press START to launch the native engine. Catalog status is not live-chain verification.");
-        Toast.makeText(this, "Puzzle #" + id + " loaded; engine not started", Toast.LENGTH_SHORT).show();
     }
 
     private void startSolver() {
