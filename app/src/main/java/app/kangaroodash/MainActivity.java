@@ -13,6 +13,13 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
 import java.io.File;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class MainActivity extends Activity {
     private final int BG = 0xFF080D1A;
@@ -27,6 +34,9 @@ public class MainActivity extends Activity {
     private EditText pub, start, range, dp, kangaroos;
     private Button startButton, stopButton;
     private TextView liveBadge;
+    private Spinner puzzleSpinner;
+    private TextView puzzleHint;
+    private final List<JSONObject> puzzleEntries = new ArrayList<>();
     private static final int REQUEST_EXPORT_FILE = 7101;
     private String pendingExportName;
 
@@ -201,6 +211,24 @@ public class MainActivity extends Activity {
         kangaroos = field(config, "KANGAROOS", "256");
         addSection(root, "Solver configuration", config);
 
+        LinearLayout puzzlePicker = card();
+        puzzleHint = text("Loading catalog…", 12, MUTED, false);
+        puzzlePicker.addView(puzzleHint, lp(-1, -2));
+        gap(puzzlePicker, 10);
+        puzzleSpinner = new Spinner(this);
+        puzzlePicker.addView(puzzleSpinner, lp(-1, 48));
+        Button loadPuzzleButton = new Button(this);
+        loadPuzzleButton.setText("LOAD SELECTED PUZZLE");
+        loadPuzzleButton.setTextColor(TEXT);
+        loadPuzzleButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        loadPuzzleButton.setBackground(shape(0xFF25204B, 14));
+        LinearLayout.LayoutParams loadPuzzleLp = lp(-1, 48);
+        loadPuzzleLp.topMargin = dp(10);
+        puzzlePicker.addView(loadPuzzleButton, loadPuzzleLp);
+        loadPuzzleButton.setOnClickListener(v -> applySelectedPuzzle());
+        addSection(root, "Puzzle catalog (160 records)", puzzlePicker);
+        loadPuzzleCatalog();
+
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -310,6 +338,73 @@ public class MainActivity extends Activity {
         row.addView(gap, lp(12, 1));
         row.addView(dpsCard, new LinearLayout.LayoutParams(0, -1, 1f));
         return row;
+    }
+
+    private void loadPuzzleCatalog() {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                getAssets().open("puzzles.json"), StandardCharsets.UTF_8))) {
+            StringBuilder json = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) json.append(line);
+            JSONArray records = new JSONArray(json.toString());
+            List<String> labels = new ArrayList<>();
+            puzzleEntries.clear();
+            for (int i = 0; i < records.length(); i++) {
+                JSONObject record = records.optJSONObject(i);
+                if (record == null) continue;
+                int id = record.optInt("id", -1);
+                int bits = record.optInt("bits", -1);
+                if (id < 1 || bits < 1) continue;
+                puzzleEntries.add(record);
+                String state = record.optString("status", "unknown");
+                boolean hasKey = record.opt("public_key") instanceof String
+                        && isPublicKeyHex(record.optString("public_key", ""));
+                labels.add("#" + id + " • " + bits + "-bit • " + state
+                        + (hasKey ? "" : " • no public key"));
+            }
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                    android.R.layout.simple_spinner_item, labels);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            puzzleSpinner.setAdapter(adapter);
+            puzzleHint.setText(puzzleEntries.size() + " catalog records loaded. Selection does not start the engine.");
+        } catch (Exception e) {
+            puzzleEntries.clear();
+            puzzleHint.setText("Catalog unavailable: " + e.getClass().getSimpleName());
+            statusText.setText("Puzzle catalog could not be loaded");
+        }
+    }
+
+    private void applySelectedPuzzle() {
+        int position = puzzleSpinner == null ? -1 : puzzleSpinner.getSelectedItemPosition();
+        if (position < 0 || position >= puzzleEntries.size()) {
+            puzzleHint.setText("Choose a valid catalog record first.");
+            return;
+        }
+        JSONObject record = puzzleEntries.get(position);
+        String key = record.optString("public_key", "");
+        String startHex = record.optString("range_start_hex", "");
+        int rangeBits = record.optInt("search_bits", -1);
+        int id = record.optInt("id", -1);
+        String state = record.optString("status", "unknown");
+
+        if (!isPublicKeyHex(key)) {
+            puzzleHint.setText("Puzzle #" + id + " has no usable public key; nothing was changed.");
+            return;
+        }
+        if (!isValidStartValue(startHex)) {
+            puzzleHint.setText("Puzzle #" + id + " has an invalid start value; nothing was changed.");
+            return;
+        }
+        if (rangeBits < 1 || rangeBits > 256) {
+            puzzleHint.setText("Puzzle #" + id + " has no supported positive search range; nothing was changed.");
+            return;
+        }
+
+        pub.setText(key);
+        start.setText(startHex);
+        range.setText(Integer.toString(rangeBits));
+        puzzleHint.setText("Loaded Puzzle #" + id + " (" + state + "). Review the key/range, then press START to launch the native engine. Catalog status is not live-chain verification.");
+        Toast.makeText(this, "Puzzle #" + id + " loaded; engine not started", Toast.LENGTH_SHORT).show();
     }
 
     private void startSolver() {
