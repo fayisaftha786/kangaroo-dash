@@ -1,0 +1,54 @@
+{
+  "verifiedOn": "2026-10-02",
+  "snapshots": {
+    "legacy": {
+      "date": "2026-08-22",
+      "path": "lotterypzl-site/src/data/puzzles.json",
+      "git": "988d9f0ce3a68dca9b94f62218dbd02cb3c7e568",
+      "role": "solved_date, solver labels, found_pct provenance, #135 solve tx/block/url"
+    },
+    "candidate": {
+      "date": "2026-08-27",
+      "path": "lottery-new-site/src/data/puzzles.ts",
+      "git": null,
+      "role": "compressed pubkeys, English notes, sparse source_label"
+    }
+  },
+  "cryptographicCheck": {
+    "performed": true,
+    "kind": "offline_local",
+    "onChain": false,
+    "asOf": "2026-10-02",
+    "scope": [
+      "p2pkh_base58check",
+      "secp256k1_curve_point",
+      "privkey_to_compressed_pubkey",
+      "hash160_address",
+      "scalar_in_range"
+    ],
+    "note": "Local cryptographic consistency of catalog material. Not a chain census and not a live-balance check."
+  },
+  "chainFreshness": {
+    "performed": false,
+    "balances": null,
+    "spendCensus": null,
+    "latestVerification": null,
+    "asOf": null,
+    "note": "No live balance or latest-chain verification is stored or claimed."
+  },
+  "conventions": {
+    "bits": "Scalar bit length. bits === id.",
+    "search_bits": "bits - 1. Search interval width in bits. Inclusive range [2^(bits-1), 2^bits - 1], size 2^(bits-1).",
+    "found_pct": "Legacy snapshot display string. Provenance only. Not recomputed.",
+    "found_offset_pct": "(k - 2^(n-1)) / 2^(n-1) * 100. Puzzle #1 is a singleton so the offset is 0. Legacy found_pct for #1 is 100%.",
+    "reward_btc": "Nominal catalog allocation n * 0.1 BTC. Not a live UTXO balance.",
+    "status": "solved | unsolved. A catalog spend record, not a live UTXO check.",
+    "search_class": "historical (solved) | address-only (unsolved, no catalog pubkey) | public-key (unsolved with catalog pubkey).",
+    "historical_scalar": "Source catalog only: the already-public historical solved scalar, or null. Never exported in the /data/ files. Unsafe for wallets. No WIF.",
+    "pubkey_known": "True iff public_key is present. A public key is not solved status.",
+    "solver": "Dated snapshot / self-attribution / community label. Not an audited identity. Early address-prefix tags (e.g. #1) and any removed address-fragment tag are legacy display strings, never identities.",
+    "source_label": "Per-record evidence class where present (On-chain, Community report, Self-attribution, Cryptographically verified). Null means legacy snapshot provenance: spend asserted by the catalog file, not verified per record here."
+  },
+  "keyMaterialWarning": "Historical solved scalars in this catalog are already public reference material. They are unsafe for wallets. This catalog does not convert them to WIF.",
+  "evidenceNote": "Catalog source-snapshot dates (legacy 2026-08-22; candidate 2026-08-27) are distinct from the 2026-10-02 offline cryptographic re-check and from chain freshness. Chain freshness was not performed: no stored live-balance census. A 2026-10-02 remaining-sats probe of the 77 catalog-unsolved addresses (scripts/chain-watch.cjs) found none below half its nominal reward. On 2026-10-02 the first reward spend of every solved record was read from mempool.space and cross-checked on blockstream.info (txid, block, time); all 83 solved records now store solve_txid, solve_block and solved_at (method and per-record findings: docs/atlas-work/gaps-2026-10/). Records whose only evidence is that spend carry the On-chain label: it attests that the reward moved, not who moved it. Solver labels without a source_url remain legacy snapshot labels, not identities. solved_date keeps the catalog value; where the spend block is dated one day apart (#29, #59, #64) the record note says so. #120, #125 and #130 are Community report: their attribution to RetiredCoder rests on community records; on 2026-10-02 no primary self-attribution was found and their spend transactions carry no message. Nominal reward is not balance: 75 of 83 solved records moved less than the nominal amount. Public-key availability is not solved status."
+}
