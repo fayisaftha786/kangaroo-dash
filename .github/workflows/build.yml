@@ -121,8 +121,8 @@ jobs:
                   data = archive.read(native_path)
               except KeyError:
                   raise SystemExit(f"Verification failed: {native_path} is missing from APK")
-          if len(data) < 20:
-              raise SystemExit("Verification failed: native library is too small for an ELF header")
+          if len(data) < 64:
+              raise SystemExit("Verification failed: ELF64 header is truncated")
           if data[:4] != b"\x7fELF":
               raise SystemExit("Verification failed: native library does not have ELF magic")
           if data[4] != 2:
@@ -143,8 +143,6 @@ jobs:
 
           # Android 15/16 16 KB page-size readiness: all PT_LOAD segments must
           # advertise at least 16 KB alignment and congruent file/virtual offsets.
-          if len(data) < 64:
-              raise SystemExit("Verification failed: ELF64 header is truncated")
           phoff = struct.unpack_from("<Q", data, 32)[0]
           phentsize = struct.unpack_from("<H", data, 54)[0]
           phnum = struct.unpack_from("<H", data, 56)[0]
