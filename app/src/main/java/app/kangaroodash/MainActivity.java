@@ -413,6 +413,8 @@ public class MainActivity extends Activity {
         JSONObject record = puzzleEntries.get(position);
         String key = record.optString("public_key", "");
         String startHex = record.optString("range_start_hex", "");
+        String endHex = record.optString("range_end_hex", "");
+        String rangeSize = record.optString("range_size_decimal", "");
         int rangeBits = record.optInt("search_bits", -1);
         int id = record.optInt("id", -1);
         String state = record.optString("status", "unknown");
@@ -435,6 +437,10 @@ public class MainActivity extends Activity {
         }
         if (!isValidStartValue(startHex)) {
             puzzleHint.setText("Puzzle #" + id + " has an invalid start value; nothing was changed.");
+            return;
+        }
+        if (!PuzzleCatalogPolicy.matchesRangeMetadata(id, startHex, endHex, rangeSize, rangeBits)) {
+            puzzleHint.setText("Puzzle #" + id + " has inconsistent start/end/size metadata; START is blocked.");
             return;
         }
         if (!PuzzleCatalogPolicy.hasSupportedSearchBits(rangeBits)) {
