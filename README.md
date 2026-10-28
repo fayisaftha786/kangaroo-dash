@@ -1,5 +1,7 @@
 [![Android CI](https://github.com/fayisaftha786/kangaroo-dash/actions/workflows/build.yml/badge.svg)](https://github.com/fayisaftha786/kangaroo-dash/actions/workflows/build.yml)
 
+**Current build target:** Kangaroo v2.2 (`versionCode 4`) · Android API 36. Catalog source gates stay fail-closed; the native engine's internal search semantics and DP persistence are not proven by CI.
+
 ## Downloading and checking a CI APK
 
 1. Open the [Actions runs](https://github.com/fayisaftha786/kangaroo-dash/actions/workflows/build.yml) and select a successful run for the branch/commit you intend to test.
