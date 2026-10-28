@@ -18,6 +18,12 @@ public class PuzzleCatalogPolicyTest {
         assertTrue(PuzzleCatalogPolicy.isBlocked(null, false, false));
     }
 
+    @Test public void blocksMissingOrMalformedSafetyMetadata() {
+        assertTrue(PuzzleCatalogPolicy.isBlocked("unsolved", null, false));
+        assertTrue(PuzzleCatalogPolicy.isBlocked("unsolved", false, null));
+        assertTrue(PuzzleCatalogPolicy.isBlocked("unsolved", "false", false));
+    }
+
     @Test public void permitsOnlyUnsolvedUnflaggedEntries() {
         assertFalse(PuzzleCatalogPolicy.isBlocked("unsolved", false, false));
     }
