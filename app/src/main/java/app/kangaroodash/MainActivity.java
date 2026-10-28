@@ -297,7 +297,7 @@ public class MainActivity extends Activity {
         healthButton.setOnClickListener(v -> showHealthCenter());
 
         Button puzzleDataButton = new Button(this);
-        puzzleDataButton.setText("CHECK PUZZLE DATA");
+        puzzleDataButton.setText("AUDIT FULL PUZZLE CATALOG");
         puzzleDataButton.setTextColor(TEXT);
         puzzleDataButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         puzzleDataButton.setBackground(shape(0xFF1C2942, 14));
@@ -643,7 +643,46 @@ public class MainActivity extends Activity {
     }
 
     private void showPuzzleDataValidation() {
-        StringBuilder report = new StringBuilder("PUZZLE DATA VALIDATION\n\n");
+        final String inputReport = buildCurrentInputValidationReport();
+        final AlertDialog progress = new AlertDialog.Builder(this)
+                .setTitle("Full puzzle catalog audit")
+                .setMessage("Checking every bundled record, range, safety flag, public key and source URL…")
+                .setCancelable(false)
+                .create();
+        progress.show();
+
+        Thread auditThread = new Thread(() -> {
+            final String catalogReport = buildBundledCatalogAuditReport();
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) {
+                    progress.dismiss();
+                    return;
+                }
+                progress.dismiss();
+                final String validationReport = catalogReport + "\n\n" + inputReport;
+                new AlertDialog.Builder(this)
+                        .setTitle("Full Puzzle Data Audit")
+                        .setMessage(validationReport)
+                        .setPositiveButton("Copy report", (dialog, which) -> {
+                            ClipboardManager clipboard =
+                                    (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                            if (clipboard != null) {
+                                clipboard.setPrimaryClip(ClipData.newPlainText(
+                                        "Puzzle data audit", validationReport));
+                                Toast.makeText(this, "Audit report copied", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(this, "Clipboard unavailable", Toast.LENGTH_SHORT).show();
+                            }
+                        })
+                        .setNegativeButton("Close", null)
+                        .show();
+            });
+        }, "puzzle-catalog-audit");
+        auditThread.start();
+    }
+
+    private String buildCurrentInputValidationReport() {
+        StringBuilder report = new StringBuilder("CURRENT INPUT / STORAGE CHECK\n\n");
         boolean inputsValid = true;
 
         String publicKey = pub.getText().toString().trim();
@@ -693,24 +732,213 @@ public class MainActivity extends Activity {
                     + " bytes. Native schema/content not verified\n");
         }
 
-        report.append("\nOVERALL: ").append(inputsValid ? "INPUT FORMAT CHECK PASSED (dp.json content unverified)" : "INPUT ERRORS FOUND")
-                .append("\n\nIMPORTANT: This checks input format and file metadata only. It does not verify that the public key belongs to the intended puzzle, that the native engine can load/save this file, or that any reported result is correct.");
+        report.append("\nCURRENT INPUT SUMMARY: ")
+                .append(inputsValid
+                        ? "input format checks passed; DP file content unverified"
+                        : "input errors found")
+                .append("\nNote: field format and file metadata do not verify native search semantics or result correctness.");
+        return report.toString();
+    }
 
-        final String validationReport = report.toString();
-        new AlertDialog.Builder(this)
-                .setTitle("Puzzle Data Validation")
-                .setMessage(validationReport)
-                .setPositiveButton("Copy report", (dialog, which) -> {
-                    ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-                    if (clipboard != null) {
-                        clipboard.setPrimaryClip(ClipData.newPlainText("Puzzle data validation", validationReport));
-                        Toast.makeText(this, "Validation report copied", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(this, "Clipboard unavailable", Toast.LENGTH_SHORT).show();
+    private String buildBundledCatalogAuditReport() {
+        StringBuilder report = new StringBuilder("BUNDLED JSON CATALOG AUDIT\n");
+        final int expectedCount = 160;
+        int total = 0;
+        int nonObjectRecords = 0;
+        int invalidIds = 0;
+        int duplicateIds = 0;
+        int unexpectedIds = 0;
+        int bitsMismatches = 0;
+        int solved = 0;
+        int unsolved = 0;
+        int unknownStatuses = 0;
+        int validPublicKeys = 0;
+        int missingOrInvalidPublicKeys = 0;
+        int validRanges = 0;
+        int invalidRanges = 0;
+        int unsupportedRanges = 0;
+        int missingSafetyFlags = 0;
+        int safetyBlocked = 0;
+        int httpsSources = 0;
+        int missingOrNonHttpsSources = 0;
+        int locallyRunnable = 0;
+        int locallyRunnableWithHttpsSource = 0;
+
+        java.util.Set<Integer> ids = new java.util.HashSet<>();
+        java.util.List<Integer> invalidIdExamples = new java.util.ArrayList<>();
+        java.util.List<Integer> duplicateIdExamples = new java.util.ArrayList<>();
+        java.util.List<Integer> missingKeyExamples = new java.util.ArrayList<>();
+        java.util.List<Integer> invalidRangeExamples = new java.util.ArrayList<>();
+        java.util.List<Integer> missingSourceExamples = new java.util.ArrayList<>();
+        java.util.List<Integer> localCandidateExamples = new java.util.ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                getAssets().open("puzzles.json"), StandardCharsets.UTF_8))) {
+            StringBuilder json = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) json.append(line);
+            JSONArray records = new JSONArray(json.toString());
+            total = records.length();
+
+            for (int i = 0; i < records.length(); i++) {
+                JSONObject record = records.optJSONObject(i);
+                if (record == null) {
+                    nonObjectRecords++;
+                    continue;
+                }
+
+                Integer idValue = strictCatalogInteger(record.opt("id"));
+                int id = idValue == null ? -1 : idValue;
+                if (idValue == null || id < 1) {
+                    invalidIds++;
+                    addExample(invalidIdExamples, id);
+                } else {
+                    if (!ids.add(id)) {
+                        duplicateIds++;
+                        addExample(duplicateIdExamples, id);
                     }
-                })
-                .setNegativeButton("Close", null)
-                .show();
+                    if (id > expectedCount) unexpectedIds++;
+                }
+
+                Integer bitsValue = strictCatalogInteger(record.opt("bits"));
+                if (idValue == null || bitsValue == null || !bitsValue.equals(idValue)) {
+                    bitsMismatches++;
+                }
+
+                String state = record.opt("status") instanceof String
+                        ? record.optString("status") : "unknown";
+                if ("solved".equalsIgnoreCase(state)) solved++;
+                else if ("unsolved".equalsIgnoreCase(state)) unsolved++;
+                else unknownStatuses++;
+
+                String key = record.opt("public_key") instanceof String
+                        ? record.optString("public_key") : "";
+                boolean keyValid = isPublicKeyHex(key);
+                if (keyValid) validPublicKeys++;
+                else {
+                    missingOrInvalidPublicKeys++;
+                    addExample(missingKeyExamples, id);
+                }
+
+                String startHex = record.opt("range_start_hex") instanceof String
+                        ? record.optString("range_start_hex") : "";
+                String endHex = record.opt("range_end_hex") instanceof String
+                        ? record.optString("range_end_hex") : "";
+                String sizeDecimal = record.opt("range_size_decimal") instanceof String
+                        ? record.optString("range_size_decimal") : "";
+                Integer searchBitsValue = strictCatalogInteger(record.opt("search_bits"));
+                int searchBits = searchBitsValue == null ? -1 : searchBitsValue;
+                boolean rangeValid = idValue != null && id >= 1 && id <= expectedCount
+                        && bitsValue != null && bitsValue == id
+                        && searchBitsValue != null
+                        && PuzzleCatalogPolicy.matchesRangeMetadata(
+                                id, startHex, endHex, sizeDecimal, searchBits);
+                if (rangeValid) {
+                    validRanges++;
+                    if (!PuzzleCatalogPolicy.hasSupportedSearchBits(searchBits)) {
+                        unsupportedRanges++;
+                    }
+                } else {
+                    invalidRanges++;
+                    addExample(invalidRangeExamples, id);
+                }
+
+                Object privateKeyFlag = record.opt("private_key_already_public");
+                Object unsafeFlag = record.opt("unsafe_for_wallets");
+                if (!(privateKeyFlag instanceof Boolean) || !(unsafeFlag instanceof Boolean)) {
+                    missingSafetyFlags++;
+                }
+                if (PuzzleCatalogPolicy.isBlocked(state, privateKeyFlag, unsafeFlag)) {
+                    safetyBlocked++;
+                }
+
+                Object sourceValue = record.opt("source_url");
+                boolean httpsSource = sourceValue instanceof String
+                        && PuzzleCatalogAuditPolicy.isHttpsSource((String) sourceValue);
+                if (httpsSource) httpsSources++;
+                else {
+                    missingOrNonHttpsSources++;
+                    addExample(missingSourceExamples, id);
+                }
+
+                boolean startValid = isValidStartValue(startHex);
+                boolean candidate = PuzzleCatalogAuditPolicy.isLocallyRunnable(
+                        state, privateKeyFlag, unsafeFlag, keyValid, startValid,
+                        rangeValid, searchBits);
+                if (candidate) {
+                    locallyRunnable++;
+                    addExample(localCandidateExamples, id);
+                    if (httpsSource) locallyRunnableWithHttpsSource++;
+                }
+            }
+
+            int missingIds = 0;
+            for (int id = 1; id <= expectedCount; id++) {
+                if (!ids.contains(id)) missingIds++;
+            }
+
+            report.append("\nRecords: ").append(total)
+                    .append(" (expected ").append(expectedCount).append(")\n")
+                    .append("Non-object records: ").append(nonObjectRecords).append('\n')
+                    .append("Invalid/missing IDs: ").append(invalidIds).append('\n')
+                    .append("Duplicate ID occurrences: ").append(duplicateIds).append('\n')
+                    .append("IDs outside 1–").append(expectedCount).append(": ")
+                    .append(unexpectedIds).append('\n')
+                    .append("Missing IDs in 1–").append(expectedCount).append(": ")
+                    .append(missingIds).append('\n')
+                    .append("bits != id or malformed bits: ").append(bitsMismatches).append('\n')
+                    .append("Status counts: solved=").append(solved)
+                    .append(", unsolved=").append(unsolved)
+                    .append(", unknown=").append(unknownStatuses).append('\n')
+                    .append("Usable secp256k1 public keys: ").append(validPublicKeys)
+                    .append("; missing/invalid: ").append(missingOrInvalidPublicKeys).append('\n')
+                    .append("Internally consistent range metadata: ").append(validRanges)
+                    .append("; invalid/inconsistent: ").append(invalidRanges).append('\n')
+                    .append("Metadata-valid but unsupported search width: ").append(unsupportedRanges).append('\n')
+                    .append("Missing/malformed safety flag pairs: ").append(missingSafetyFlags).append('\n')
+                    .append("Records blocked by current safety gates: ").append(safetyBlocked).append('\n')
+                    .append("HTTPS source URLs present: ").append(httpsSources)
+                    .append("; missing/non-HTTPS: ").append(missingOrNonHttpsSources).append('\n')
+                    .append("Locally eligible under current app gates: ").append(locallyRunnable).append('\n')
+                    .append("Locally eligible and with an HTTPS URL: ")
+                    .append(locallyRunnableWithHttpsSource).append('\n');
+
+            report.append("\nExamples (up to 12 IDs each):\n");
+            report.append("Missing/invalid ID records: ").append(exampleList(invalidIdExamples)).append('\n');
+            report.append("Duplicate IDs: ").append(exampleList(duplicateIdExamples)).append('\n');
+            report.append("Missing/invalid public key: ").append(exampleList(missingKeyExamples)).append('\n');
+            report.append("Invalid range metadata: ").append(exampleList(invalidRangeExamples)).append('\n');
+            report.append("Missing/non-HTTPS source: ").append(exampleList(missingSourceExamples)).append('\n');
+            report.append("Locally eligible records: ").append(exampleList(localCandidateExamples)).append('\n');
+        } catch (Exception e) {
+            report.append("\nAUDIT FAILED: could not parse bundled puzzles.json (")
+                    .append(e.getClass().getSimpleName()).append(")\n")
+                    .append("Details: ").append(e.getMessage());
+        }
+
+        report.append("\n\nLIMITS: HTTPS URL presence does not prove source authenticity. "
+                + "These checks do not query the live blockchain, prove a target is correctly labelled, "
+                + "confirm native --range semantics, verify DP save/load, or independently validate a result.");
+        return report.toString();
+    }
+
+    private static Integer strictCatalogInteger(Object value) {
+        if (value instanceof Integer) return (Integer) value;
+        if (value instanceof Long) {
+            long candidate = (Long) value;
+            if (candidate >= Integer.MIN_VALUE && candidate <= Integer.MAX_VALUE) {
+                return (int) candidate;
+            }
+        }
+        return null;
+    }
+
+    private static void addExample(java.util.List<Integer> list, int id) {
+        if (list.size() < 12) list.add(id);
+    }
+
+    private static String exampleList(java.util.List<Integer> ids) {
+        return ids.isEmpty() ? "none" : ids.toString();
     }
 
     private void showHealthCenter() {
