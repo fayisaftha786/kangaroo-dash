@@ -438,8 +438,11 @@ public class MainActivity extends Activity {
                     puzzleHint.setText(getString(R.string.choose_catalog_record));
                 }
             });
-            puzzleHint.setText(getString(R.string.catalog_load_summary,
-                    puzzleEntries.size(), locallyEligibleRecords));
+            String loadedCount = getResources().getQuantityString(
+                    R.plurals.catalog_records_loaded, puzzleEntries.size(), puzzleEntries.size());
+            String eligibleCount = getResources().getQuantityString(
+                    R.plurals.catalog_records_eligible, locallyEligibleRecords, locallyEligibleRecords);
+            puzzleHint.setText(getString(R.string.catalog_load_summary, loadedCount, eligibleCount));
         } catch (Exception e) {
             puzzleEntries.clear();
             puzzleHint.setText(getString(R.string.catalog_unavailable, e.getClass().getSimpleName()));
@@ -474,29 +477,29 @@ public class MainActivity extends Activity {
         if (PuzzleCatalogPolicy.isBlocked(state,
                 record.opt("private_key_already_public"),
                 record.opt("unsafe_for_wallets"))) {
-            puzzleHint.setText(getString(R.string.puzzle_blocked_safety, id));
+            puzzleHint.setText(getString(R.string.puzzle_blocked_safety, Integer.toString(id)));
             return;
         }
         if (!PuzzleCatalogAuditPolicy.hasSourceReference(
                 record.optString("source_url", ""),
                 record.optString("source_label", ""))) {
-            puzzleHint.setText(getString(R.string.puzzle_missing_source_reference, id));
+            puzzleHint.setText(getString(R.string.puzzle_missing_source_reference, Integer.toString(id)));
             return;
         }
         if (!isPublicKeyHex(key)) {
-            puzzleHint.setText(getString(R.string.puzzle_missing_public_key, id));
+            puzzleHint.setText(getString(R.string.puzzle_missing_public_key, Integer.toString(id)));
             return;
         }
         if (!isValidStartValue(startHex)) {
-            puzzleHint.setText(getString(R.string.puzzle_invalid_start, id));
+            puzzleHint.setText(getString(R.string.puzzle_invalid_start, Integer.toString(id)));
             return;
         }
         if (!PuzzleCatalogPolicy.matchesRangeMetadata(id, startHex, endHex, rangeSize, rangeBits)) {
-            puzzleHint.setText(getString(R.string.puzzle_invalid_range_metadata, id));
+            puzzleHint.setText(getString(R.string.puzzle_invalid_range_metadata, Integer.toString(id)));
             return;
         }
         if (!PuzzleCatalogPolicy.hasSupportedSearchBits(rangeBits)) {
-            puzzleHint.setText(getString(R.string.puzzle_unsupported_range, id));
+            puzzleHint.setText(getString(R.string.puzzle_unsupported_range, Integer.toString(id)));
             return;
         }
 
