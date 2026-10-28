@@ -402,6 +402,8 @@ public class MainActivity extends Activity {
                         record.opt("unsafe_for_wallets"));
                 String sourceUrl = record.optString("source_url", "");
                 String sourceLabel = record.optString("source_label", "");
+                String datasetSourceUrl = record.optString("dataset_source_url", "");
+                boolean hasDatasetReference = PuzzleCatalogAuditPolicy.isHttpsSource(datasetSourceUrl);
                 boolean hasSourceReference = PuzzleCatalogAuditPolicy.hasSourceReference(
                         sourceUrl, sourceLabel);
 
@@ -414,7 +416,11 @@ public class MainActivity extends Activity {
 
                 StringBuilder availability = new StringBuilder();
                 if (blockedBySafety) availability.append(" • blocked: status/safety");
-                if (!hasSourceReference) availability.append(" • blocked: source missing");
+                if (!hasSourceReference) {
+                    availability.append(hasDatasetReference
+                            ? " • blocked: record source missing (dataset reference only)"
+                            : " • blocked: source missing");
+                }
                 if (!hasKey) availability.append(" • no usable public key");
                 if (!startValid || !rangeMetadataValid) {
                     availability.append(" • invalid range metadata");
@@ -814,6 +820,9 @@ public class MainActivity extends Activity {
         int safetyBlocked = 0;
         int httpsSources = 0;
         int missingOrNonHttpsSources = 0;
+        int datasetSourceReferences = 0;
+        int chainTransactionReferences = 0;
+        int chainExplorerMirrors = 0;
         int locallyRunnable = 0;
         int locallyRunnableWithHttpsSource = 0;
 
@@ -917,6 +926,19 @@ public class MainActivity extends Activity {
                     addExample(missingSourceExamples, id);
                 }
 
+                if (PuzzleCatalogAuditPolicy.isHttpsSource(
+                        record.optString("dataset_source_url", null))) {
+                    datasetSourceReferences++;
+                }
+                if (PuzzleCatalogAuditPolicy.isHttpsSource(
+                        record.optString("chain_tx_url", null))) {
+                    chainTransactionReferences++;
+                }
+                if (PuzzleCatalogAuditPolicy.isHttpsSource(
+                        record.optString("chain_tx_url_secondary", null))) {
+                    chainExplorerMirrors++;
+                }
+
                 boolean startValid = isValidStartValue(startHex);
                 boolean candidate = PuzzleCatalogAuditPolicy.isLocallyRunnable(
                         state, privateKeyFlag, unsafeFlag, keyValid, startValid,
@@ -953,10 +975,14 @@ public class MainActivity extends Activity {
                     .append("Metadata-valid but unsupported search width: ").append(unsupportedRanges).append('\n')
                     .append("Missing/malformed safety flag pairs: ").append(missingSafetyFlags).append('\n')
                     .append("Records blocked by current safety gates: ").append(safetyBlocked).append('\n')
-                    .append("HTTPS source URLs present: ").append(httpsSources)
-                    .append("; missing/non-HTTPS: ").append(missingOrNonHttpsSources).append('\n')
-                    .append("Locally eligible after source-reference gate: ").append(locallyRunnable).append('\n')
-                    .append("Locally eligible and with an HTTPS URL plus label: ")
+                    .append("Per-record HTTPS source URLs present: ").append(httpsSources)
+                    .append("; missing/non-HTTPS per-record sources: ").append(missingOrNonHttpsSources).append('\n')
+                    .append("Secondary dataset references (not per-record proof): ")
+                    .append(datasetSourceReferences).append('\n')
+                    .append("On-chain transaction references: ").append(chainTransactionReferences)
+                    .append("; secondary explorer mirrors: ").append(chainExplorerMirrors).append('\n')
+                    .append("Locally eligible after per-record source-reference gate: ").append(locallyRunnable).append('\n')
+                    .append("Locally eligible and with an HTTPS per-record source plus label: ")
                     .append(locallyRunnableWithHttpsSource).append('\n');
 
             report.append("\nExamples (up to 12 IDs each):\n");
@@ -964,7 +990,7 @@ public class MainActivity extends Activity {
             report.append("Duplicate IDs: ").append(exampleList(duplicateIdExamples)).append('\n');
             report.append("Missing/invalid public key: ").append(exampleList(missingKeyExamples)).append('\n');
             report.append("Invalid range metadata: ").append(exampleList(invalidRangeExamples)).append('\n');
-            report.append("Missing/non-HTTPS source: ").append(exampleList(missingSourceExamples)).append('\n');
+            report.append("Missing/non-HTTPS per-record source: ").append(exampleList(missingSourceExamples)).append('\n');
             report.append("Locally eligible records: ").append(exampleList(localCandidateExamples)).append('\n');
         } catch (Exception e) {
             report.append("\nAUDIT FAILED: could not parse bundled puzzles.json (")
