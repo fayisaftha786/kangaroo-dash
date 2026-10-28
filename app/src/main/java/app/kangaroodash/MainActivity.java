@@ -412,8 +412,8 @@ public class MainActivity extends Activity {
         range.setText("");
 
         if (PuzzleCatalogPolicy.isBlocked(state,
-                record.optBoolean("private_key_already_public", false),
-                record.optBoolean("unsafe_for_wallets", false))) {
+                record.opt("private_key_already_public"),
+                record.opt("unsafe_for_wallets"))) {
             puzzleHint.setText("Puzzle #" + id + " is solved or marked unsafe; START is blocked for this record.");
             return;
         }
