@@ -39,6 +39,7 @@ public class MainActivity extends Activity {
     private final List<JSONObject> puzzleEntries = new ArrayList<>();
     // Fail closed until a catalog entry passes the execution-safety checks.
     private boolean selectedPuzzleBlocked = true;
+    private String loadedPuzzlePublicKey, loadedPuzzleStart, loadedPuzzleRange;
     private static final int REQUEST_EXPORT_FILE = 7101;
     private String pendingExportName;
 
@@ -393,6 +394,7 @@ public class MainActivity extends Activity {
     private void applySelectedPuzzle() {
         // Any failed/unsupported selection remains blocked until a valid entry loads.
         selectedPuzzleBlocked = true;
+        loadedPuzzlePublicKey = loadedPuzzleStart = loadedPuzzleRange = null;
         int position = puzzleSpinner == null ? -1 : puzzleSpinner.getSelectedItemPosition();
         if (position < 0 || position >= puzzleEntries.size()) {
             puzzleHint.setText("Choose a valid catalog record first.");
@@ -433,13 +435,18 @@ public class MainActivity extends Activity {
         pub.setText(key);
         start.setText(startHex);
         range.setText(Integer.toString(rangeBits));
+        loadedPuzzlePublicKey = key;
+        loadedPuzzleStart = startHex;
+        loadedPuzzleRange = Integer.toString(rangeBits);
         selectedPuzzleBlocked = false;
         puzzleHint.setText("Loaded Puzzle #" + id + " (" + state + "). This entry passed local checks only; source and native-engine behavior are not independently verified.");
     }
 
     private void startSolver() {
-        if (selectedPuzzleBlocked) {
-            statusText.setText("START blocked: choose an unsolved catalog record with a usable public key and supported range.");
+        if (selectedPuzzleBlocked || !PuzzleCatalogPolicy.matchesLoadedValues(
+                loadedPuzzlePublicKey, loadedPuzzleStart, loadedPuzzleRange,
+                pub.getText().toString(), start.getText().toString(), range.getText().toString())) {
+            statusText.setText("START blocked: reselect an eligible catalog entry. Changing its key/start/range breaks the catalog match.");
             return;
         }
         if (SolverService.isBusy()) {
