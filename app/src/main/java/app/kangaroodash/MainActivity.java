@@ -431,6 +431,13 @@ public class MainActivity extends Activity {
             puzzleHint.setText("Puzzle #" + id + " is solved or marked unsafe; START is blocked for this record.");
             return;
         }
+        if (!PuzzleCatalogAuditPolicy.hasSourceReference(
+                record.optString("source_url", ""),
+                record.optString("source_label", ""))) {
+            puzzleHint.setText("Puzzle #" + id
+                    + " has no HTTPS source reference and label; catalog selection is blocked.");
+            return;
+        }
         if (!isPublicKeyHex(key)) {
             puzzleHint.setText("Puzzle #" + id + " has no usable public key; nothing was changed.");
             return;
@@ -853,8 +860,11 @@ public class MainActivity extends Activity {
                 }
 
                 Object sourceValue = record.opt("source_url");
-                boolean httpsSource = sourceValue instanceof String
-                        && PuzzleCatalogAuditPolicy.isHttpsSource((String) sourceValue);
+                String sourceUrl = sourceValue instanceof String ? (String) sourceValue : null;
+                Object sourceLabelValue = record.opt("source_label");
+                String sourceLabel = sourceLabelValue instanceof String
+                        ? (String) sourceLabelValue : null;
+                boolean httpsSource = PuzzleCatalogAuditPolicy.isHttpsSource(sourceUrl);
                 if (httpsSource) httpsSources++;
                 else {
                     missingOrNonHttpsSources++;
@@ -864,7 +874,7 @@ public class MainActivity extends Activity {
                 boolean startValid = isValidStartValue(startHex);
                 boolean candidate = PuzzleCatalogAuditPolicy.isLocallyRunnable(
                         state, privateKeyFlag, unsafeFlag, keyValid, startValid,
-                        rangeValid, searchBits);
+                        rangeValid, searchBits, sourceUrl, sourceLabel);
                 if (candidate) {
                     locallyRunnable++;
                     addExample(localCandidateExamples, id);
@@ -899,8 +909,8 @@ public class MainActivity extends Activity {
                     .append("Records blocked by current safety gates: ").append(safetyBlocked).append('\n')
                     .append("HTTPS source URLs present: ").append(httpsSources)
                     .append("; missing/non-HTTPS: ").append(missingOrNonHttpsSources).append('\n')
-                    .append("Locally eligible under current app gates: ").append(locallyRunnable).append('\n')
-                    .append("Locally eligible and with an HTTPS URL: ")
+                    .append("Locally eligible after source-reference gate: ").append(locallyRunnable).append('\n')
+                    .append("Locally eligible and with an HTTPS URL plus label: ")
                     .append(locallyRunnableWithHttpsSource).append('\n');
 
             report.append("\nExamples (up to 12 IDs each):\n");

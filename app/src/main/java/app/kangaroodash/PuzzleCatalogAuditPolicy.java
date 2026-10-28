@@ -21,16 +21,27 @@ final class PuzzleCatalogAuditPolicy {
     }
 
     /**
-     * Mirrors the app's current local selection gates only.
+     * Requires a documented HTTPS source reference for catalog selection.
+     * This is a provenance floor only: it does not prove source authenticity.
+     */
+    static boolean hasSourceReference(String sourceUrl, String sourceLabel) {
+        return isHttpsSource(sourceUrl)
+                && sourceLabel != null
+                && !sourceLabel.trim().isEmpty();
+    }
+
+    /**
+     * Mirrors the app's local selection gates, including a documented source reference.
      * A true return does not imply source authenticity or native-engine correctness.
      */
     static boolean isLocallyRunnable(String status, Object privateKeyAlreadyPublic,
             Object unsafeForWallets, boolean publicKeyValid, boolean startValid,
-            boolean rangeMetadataValid, int searchBits) {
+            boolean rangeMetadataValid, int searchBits, String sourceUrl, String sourceLabel) {
         return !PuzzleCatalogPolicy.isBlocked(status, privateKeyAlreadyPublic, unsafeForWallets)
                 && publicKeyValid
                 && startValid
                 && rangeMetadataValid
-                && PuzzleCatalogPolicy.hasSupportedSearchBits(searchBits);
+                && PuzzleCatalogPolicy.hasSupportedSearchBits(searchBits)
+                && hasSourceReference(sourceUrl, sourceLabel);
     }
 }
