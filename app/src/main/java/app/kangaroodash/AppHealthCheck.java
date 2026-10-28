@@ -7,6 +7,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.os.storage.StorageManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,6 +35,14 @@ final class AppHealthCheck {
             return String.format(Locale.US, "%.1f KB", bytes / 1024.0);
         }
         return String.format(Locale.US, "%.1f MB", bytes / (1024.0 * 1024.0));
+    }
+
+    static String formatAllocatableStorage(long bytes) {
+        if (bytes < 0) return "WARN  Allocatable app storage: unavailable";
+        if (bytes >= 20L * 1024L * 1024L) {
+            return "PASS  Allocatable app storage: " + formatBytes(bytes);
+        }
+        return "WARN  Allocatable app storage is low: " + formatBytes(bytes);
     }
 
     static String createReport(Activity activity) {
@@ -68,12 +77,24 @@ final class AppHealthCheck {
             }
         }
 
-        long usable = filesDir.getUsableSpace();
-        if (usable >= 20L * 1024L * 1024L) {
-            lines.add("PASS  Free app storage: " + formatBytes(usable));
+        // Prefer the system's allocatable-byte estimate. Unlike File.getUsableSpace(),
+        // this includes cached data the OS may reclaim to satisfy an allocation request.
+        // A failed query is reported as unavailable rather than guessed as zero.
+        long allocatableBytes = -1L;
+        try {
+            StorageManager storageManager = activity.getSystemService(StorageManager.class);
+            if (storageManager != null) {
+                allocatableBytes = storageManager.getAllocatableBytes(
+                        storageManager.getUuidForPath(filesDir));
+            }
+        } catch (IOException | RuntimeException e) {
+            // Storage diagnostics must not prevent the rest of the report from completing.
+            allocatableBytes = -1L;
+        }
+        lines.add(formatAllocatableStorage(allocatableBytes));
+        if (allocatableBytes >= 20L * 1024L * 1024L) {
             passed++;
         } else {
-            lines.add("WARN  Free app storage is low: " + formatBytes(usable));
             warnings++;
         }
 
