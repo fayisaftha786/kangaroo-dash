@@ -17,6 +17,20 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v7
 
+      - name: Validate bundled puzzle catalog
+        run: |
+          python3 data-check/validate_catalog.py app/src/main/assets/puzzles.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          bundled = json.loads(Path("app/src/main/assets/puzzles.json").read_text(encoding="utf-8"))
+          mirror = json.loads(Path("data-check/puzzles.json").read_text(encoding="utf-8"))
+          if bundled != mirror:
+              raise SystemExit("FAIL: data-check/puzzles.json differs from the catalog bundled in the app")
+          print(f"PASS: validation mirror matches the bundled catalog ({len(bundled)} records)")
+          PY
+
       - name: Setup Java
         uses: actions/setup-java@v6
         with:
@@ -57,8 +71,8 @@ jobs:
               f"- Failures: **{totals['failures']}**\n"
               f"- Errors: **{totals['errors']}**\n"
               f"- Skipped: **{totals['skipped']}**\n"
-              "- Build gates: unit tests, Android lint, debug APK build, ARM64 native-library "
-              "packaging/ELF check, and APK SHA-256 verification.\n"
+              "- Build gates: puzzle-catalog structure/range checks, unit tests, Android lint, "
+              "debug APK build, ARM64 native-library packaging/ELF check, and APK SHA-256 verification.\n"
               "- Device-only behavior (real hardware, thermal behavior, and native persistence "
               "semantics) is not proven by CI.\n"
           )
