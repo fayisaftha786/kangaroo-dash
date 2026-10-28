@@ -1,6 +1,6 @@
 [![Android CI](https://github.com/fayisaftha786/kangaroo-dash/actions/workflows/build.yml/badge.svg)](https://github.com/fayisaftha786/kangaroo-dash/actions/workflows/build.yml)
 
-**Current build target:** Kangaroo v2.3 (`versionCode 5`) · Android API 36. Local diagnostics now report JSON parse/load state, usable catalog-entry count, execution-eligible count, and Activity-level START rejection reason. Catalog source gates stay fail-closed; the native engine's internal search semantics and DP persistence are not proven by CI.
+**Current build target:** Kangaroo v2.3 (`versionCode 5`) · Android API 36. Local diagnostics now report JSON parse/load state, usable catalog-entry count, execution-eligible count, and Activity-level START rejection reason. Missing per-record source metadata is surfaced as a provenance warning, not a mathematical input gate; safety flags, public-key validity and exact range checks still block invalid entries. The native engine's internal search semantics and DP persistence are not proven by CI.
 
 ## Downloading and checking a CI APK
 
