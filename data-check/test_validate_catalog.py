@@ -108,6 +108,7 @@ class BundledCatalogValidatorTests(unittest.TestCase):
     def test_dataset_reference_does_not_replace_missing_record_source(self):
         records = valid_catalog()
         records[0]["source_url"] = None
+        records[0]["source_scope"] = "missing"
         errors, warnings = validate(records)
         self.assertEqual(errors, [])
         self.assertTrue(any("#1: source_url missing or not HTTPS" in w for w in warnings))
