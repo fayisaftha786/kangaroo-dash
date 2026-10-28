@@ -115,7 +115,7 @@ def validate(data):
         if not parsed_dataset or parsed_dataset.scheme.lower() != "https" or not parsed_dataset.netloc:
             warnings.append(f"#{pid}: dataset_source_url missing or not HTTPS; secondary cross-reference unavailable")
         snapshot = record.get("dataset_source_snapshot")
-        if not isinstance(snapshot, str) or not re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", snapshot):
+        if not isinstance(snapshot, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", snapshot):
             errors.append(f"#{pid}: dataset_source_snapshot must be an ISO date YYYY-MM-DD")
 
         txid = record.get("solve_txid")
