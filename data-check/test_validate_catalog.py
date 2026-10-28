@@ -22,6 +22,7 @@ def valid_catalog():
             "source_scope": "record",
             "source_label": "Synthetic per-record source",
             "dataset_source_url": "https://example.org/secondary-catalog",
+            "dataset_record_url": f"https://lotterypuzzle.org/puzzles/{pid}/",
             "dataset_source_snapshot": "2026-10-02",
             "chain_tx_url": None,
             "chain_tx_url_secondary": None,
@@ -113,6 +114,13 @@ class BundledCatalogValidatorTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertTrue(any("#1: source_url missing or not HTTPS" in w for w in warnings))
         self.assertFalse(any("#1: dataset_source_url missing" in w for w in warnings))
+
+    def test_rejects_secondary_atlas_url_for_another_record(self):
+        records = valid_catalog()
+        records[0]["dataset_record_url"] = "https://lotterypuzzle.org/puzzles/2/"
+        errors, warnings = validate(records)
+        self.assertEqual(errors, [])
+        self.assertTrue(any("#1: dataset_record_url missing or does not match" in w for w in warnings))
 
     def test_rejects_mismatched_transaction_explorer_link(self):
         records = valid_catalog()

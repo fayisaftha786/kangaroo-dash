@@ -404,7 +404,9 @@ public class MainActivity extends Activity {
                 String sourceLabel = record.optString("source_label", "");
                 String sourceScope = record.optString("source_scope", "missing");
                 String datasetSourceUrl = record.optString("dataset_source_url", "");
-                boolean hasDatasetReference = PuzzleCatalogAuditPolicy.isHttpsSource(datasetSourceUrl);
+                String datasetRecordUrl = record.optString("dataset_record_url", "");
+                boolean hasDatasetReference = PuzzleCatalogAuditPolicy.isHttpsSource(datasetSourceUrl)
+                        || PuzzleCatalogAuditPolicy.isHttpsSource(datasetRecordUrl);
                 boolean hasSourceReference = PuzzleCatalogAuditPolicy.hasSourceReference(
                         sourceUrl, sourceLabel, sourceScope);
 
@@ -419,8 +421,8 @@ public class MainActivity extends Activity {
                 if (blockedBySafety) availability.append(" • blocked: status/safety");
                 if (!hasSourceReference) {
                     availability.append(hasDatasetReference
-                            ? " • blocked: record source missing (dataset reference only)"
-                            : " • blocked: source missing");
+                            ? " • primary record source missing (secondary atlas link only)"
+                            : " • primary source missing");
                 }
                 if (!hasKey) availability.append(" • no usable public key");
                 if (!startValid || !rangeMetadataValid) {
@@ -823,6 +825,7 @@ public class MainActivity extends Activity {
         int httpsSources = 0;
         int missingOrNonHttpsSources = 0;
         int datasetSourceReferences = 0;
+        int datasetRecordReferences = 0;
         int chainTransactionReferences = 0;
         int chainExplorerMirrors = 0;
         int locallyRunnable = 0;
@@ -936,6 +939,10 @@ public class MainActivity extends Activity {
                     datasetSourceReferences++;
                 }
                 if (PuzzleCatalogAuditPolicy.isHttpsSource(
+                        record.optString("dataset_record_url", null))) {
+                    datasetRecordReferences++;
+                }
+                if (PuzzleCatalogAuditPolicy.isHttpsSource(
                         record.optString("chain_tx_url", null))) {
                     chainTransactionReferences++;
                 }
@@ -982,8 +989,10 @@ public class MainActivity extends Activity {
                     .append("Records blocked by current safety gates: ").append(safetyBlocked).append('\n')
                     .append("Per-record HTTPS source URLs present: ").append(httpsSources)
                     .append("; missing/non-HTTPS per-record sources: ").append(missingOrNonHttpsSources).append('\n')
-                    .append("Secondary dataset references (not per-record proof): ")
+                    .append("Secondary dataset index references (not per-record proof): ")
                     .append(datasetSourceReferences).append('\n')
+                    .append("Secondary per-record atlas pages (not primary-source proof): ")
+                    .append(datasetRecordReferences).append('\n')
                     .append("On-chain transaction references: ").append(chainTransactionReferences)
                     .append("; secondary explorer mirrors: ").append(chainExplorerMirrors).append('\n')
                     .append("Locally eligible after per-record source-reference gate: ").append(locallyRunnable).append('\n')

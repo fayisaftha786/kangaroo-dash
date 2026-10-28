@@ -15,6 +15,7 @@ Each record should eventually include:
 - \`source_scope\`: \`record\` only when a record-specific HTTPS source URL and label exist; otherwise \`missing\`. Dataset-wide links never qualify.
 - \`source_label\`: describe exactly what the linked record source supports.
 - \`dataset_source_url\` and \`dataset_source_snapshot\`: secondary catalog-wide comparison and its snapshot date; not per-record proof and never a replacement for \`source_url\`.
+- \`dataset_record_url\`: a secondary per-puzzle atlas page for review convenience; its URL and contents are not treated as a primary source or execution approval.
 - \`chain_tx_url\` and \`chain_tx_url_secondary\`: transaction-explorer links for a recorded spend, not proof of solver identity or live balance.
 - \`verification_status\`: one of \`unverified\`, \`format_checked\`, \`key_address_checked\`, or \`source_cross_checked\`.
 - \`notes\`: optional explanation of missing or conflicting fields.

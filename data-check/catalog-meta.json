@@ -62,6 +62,7 @@
     "dataset_source_url": "Secondary dataset-wide cross-reference only. It must not satisfy the app's per-record source gate.",
     "chain_tx_url": "Explorer link for the stored solve_txid.",
     "chain_tx_url_secondary": "Independent explorer mirror for the same solve_txid.",
-    "source_scope": "Required gate: record only when source_url is a record-specific HTTPS reference with a non-empty evidence label; missing otherwise. Dataset-wide links never count."
+    "source_scope": "Required gate: record only when source_url is a record-specific HTTPS reference with a non-empty evidence label; missing otherwise. Dataset-wide links never count.",
+    "dataset_record_url": "Secondary per-puzzle atlas page for traceability only. It is not primary-source proof and cannot satisfy source_scope=record."
   }
 }
