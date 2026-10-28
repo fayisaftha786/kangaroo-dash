@@ -1,6 +1,6 @@
 [![Android CI](https://github.com/fayisaftha786/kangaroo-dash/actions/workflows/build.yml/badge.svg)](https://github.com/fayisaftha786/kangaroo-dash/actions/workflows/build.yml)
 
-**Current build target:** Kangaroo v2.3 (`versionCode 5`) · Android API 36. Local diagnostics now report JSON parse/load state, usable catalog-entry count, execution-eligible count, and Activity-level START rejection reason. Missing per-record source metadata remains a fail-closed START gate; the UI can show valid metadata for inspection without authorizing native search. The native engine's internal search semantics and DP persistence are not proven by CI.
+**Current build target:** Kangaroo v2.4 (`versionCode 6`) · Android API 36. Local diagnostics report JSON parse/load state, usable catalog-entry count, execution-eligible count, and Activity-level START rejection reason. Valid puzzle metadata can be shown for inspection while solved/unsafe records and records missing required per-record source references remain blocked from native START. Puzzles #140, #145, #150, #155 and #160 now cite the 2019-06-01 on-chain public-key reveal transaction at record scope; that source supports public-key exposure, not a solved scalar or live-balance claim. The native engine's internal search semantics and DP persistence are not proven by CI.
 
 ## Downloading and checking a CI APK
 
