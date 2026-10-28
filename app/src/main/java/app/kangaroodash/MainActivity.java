@@ -474,7 +474,7 @@ public class MainActivity extends Activity {
             puzzleHint.setText(getString(R.string.catalog_load_summary, loadedCount, eligibleCount));
         } catch (Exception e) {
             catalogDataParsed = false;
-            catalogLoadError = e.getClass().getSimpleName() + ": " + safeDiagnosticMessage(e);
+            catalogLoadError = e.getClass().getSimpleName();
             puzzleEntries.clear();
             catalogRawRecordCount = 0;
             catalogEligibleEntryCount = 0;
