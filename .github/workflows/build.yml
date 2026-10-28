@@ -121,8 +121,8 @@ jobs:
                   data = archive.read(native_path)
               except KeyError:
                   raise SystemExit(f"Verification failed: {native_path} is missing from APK")
-          if len(data) < 20:
-              raise SystemExit("Verification failed: native library is too small for an ELF header")
+          if len(data) < 64:
+              raise SystemExit("Verification failed: ELF64 header is truncated")
           if data[:4] != b"\x7fELF":
               raise SystemExit("Verification failed: native library does not have ELF magic")
           if data[4] != 2:
@@ -132,11 +132,17 @@ jobs:
           machine = struct.unpack_from("<H", data, 18)[0]
           if machine != 183:
               raise SystemExit(f"Verification failed: expected AArch64 e_machine=183, got {machine}")
+          elf_type = struct.unpack_from("<H", data, 16)[0]
+          if elf_type not in (2, 3):  # ET_EXEC or ET_DYN (PIE)
+              raise SystemExit(
+                  f"Verification failed: ELF type {elf_type} is not executable/PIE"
+              )
+          entry_point = struct.unpack_from("<Q", data, 24)[0]
+          if entry_point == 0:
+              raise SystemExit("Verification failed: ELF entry point is zero; not a runnable executable")
 
           # Android 15/16 16 KB page-size readiness: all PT_LOAD segments must
           # advertise at least 16 KB alignment and congruent file/virtual offsets.
-          if len(data) < 64:
-              raise SystemExit("Verification failed: ELF64 header is truncated")
           phoff = struct.unpack_from("<Q", data, 32)[0]
           phentsize = struct.unpack_from("<H", data, 54)[0]
           phnum = struct.unpack_from("<H", data, 56)[0]
@@ -144,15 +150,19 @@ jobs:
               raise SystemExit("Verification failed: invalid ELF64 program-header table")
           page_size = 16 * 1024
           load_segments = []
+          has_executable_load_segment = False
           for index in range(phnum):
               entry = phoff + index * phentsize
               p_type = struct.unpack_from("<I", data, entry)[0]
               if p_type != 1:  # PT_LOAD
                   continue
+              p_flags = struct.unpack_from("<I", data, entry + 4)[0]
               p_offset = struct.unpack_from("<Q", data, entry + 8)[0]
               p_vaddr = struct.unpack_from("<Q", data, entry + 16)[0]
               p_align = struct.unpack_from("<Q", data, entry + 48)[0]
               load_segments.append((p_offset, p_vaddr, p_align))
+              if p_flags & 0x1:  # PF_X
+                  has_executable_load_segment = True
               if p_align < page_size:
                   raise SystemExit(
                       f"Verification failed: PT_LOAD {index} alignment {p_align:#x} "
@@ -165,8 +175,12 @@ jobs:
                   )
           if not load_segments:
               raise SystemExit("Verification failed: ELF contains no PT_LOAD segments")
-          print(f"Verified {native_path}: ELF64 AArch64; {len(load_segments)} PT_LOAD segments "
-                "are aligned for 16 KB pages")
+          if not has_executable_load_segment:
+              raise SystemExit("Verification failed: ELF has no executable PT_LOAD segment")
+          print(
+              f"Verified {native_path}: ELF64 AArch64 executable/PIE; entry point "
+              f"{entry_point:#x}; {len(load_segments)} PT_LOAD segments aligned for 16 KB pages"
+          )
           PY
 
       - name: Generate APK SHA-256 checksum

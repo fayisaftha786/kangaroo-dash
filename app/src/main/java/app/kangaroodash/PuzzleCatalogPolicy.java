@@ -35,8 +35,10 @@ final class PuzzleCatalogPolicy {
      */
     static boolean matchesRangeMetadata(int puzzleId, String startHex, String endHex,
             String sizeDecimal, int searchBits) {
-        if (puzzleId < 1 || puzzleId > 160 || startHex == null || endHex == null
-                || sizeDecimal == null || searchBits != puzzleId - 1) {
+        if (puzzleId < 1 || puzzleId > 160
+                || !isHexBound(startHex) || !isHexBound(endHex)
+                || sizeDecimal == null || !sizeDecimal.matches("[0-9]+")
+                || searchBits != puzzleId - 1) {
             return false;
         }
         try {
@@ -50,16 +52,29 @@ final class PuzzleCatalogPolicy {
             return start.equals(expectedStart)
                     && end.equals(expectedEnd)
                     && end.compareTo(start) >= 0
-                    && expectedSize.toString().equals(sizeDecimal.trim())
+                    && expectedSize.toString().equals(sizeDecimal)
                     && end.subtract(start).add(java.math.BigInteger.ONE).equals(expectedSize);
         } catch (NumberFormatException | NullPointerException invalid) {
             return false;
         }
     }
 
+    /** Accept only non-empty hexadecimal digits, with an optional 0x/0X prefix. */
+    private static boolean isHexBound(String value) {
+        if (value == null || value.isEmpty()) return false;
+        int firstDigit = value.startsWith("0x") || value.startsWith("0X") ? 2 : 0;
+        if (firstDigit == value.length()) return false;
+        for (int i = firstDigit; i < value.length(); i++) {
+            char c = value.charAt(i);
+            boolean digit = c >= '0' && c <= '9';
+            boolean lower = c >= 'a' && c <= 'f';
+            boolean upper = c >= 'A' && c <= 'F';
+            if (!digit && !lower && !upper) return false;
+        }
+        return true;
+    }
+
     private static String stripHexPrefix(String value) {
-        String trimmed = value.trim();
-        return trimmed.startsWith("0x") || trimmed.startsWith("0X")
-                ? trimmed.substring(2) : trimmed;
+        return value.startsWith("0x") || value.startsWith("0X") ? value.substring(2) : value;
     }
 }
