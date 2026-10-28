@@ -35,4 +35,15 @@ public class PuzzleCatalogPolicyTest {
         assertTrue(PuzzleCatalogPolicy.hasSupportedSearchBits(256));
         assertFalse(PuzzleCatalogPolicy.hasSupportedSearchBits(257));
     }
+
+    @Test public void allowsStartOnlyWhenValuesMatchLoadedCatalogRecord() {
+        assertTrue(PuzzleCatalogPolicy.matchesLoadedValues(
+                "02ABC", "0001", "4", "02abc", "0001", "4"));
+        assertFalse(PuzzleCatalogPolicy.matchesLoadedValues(
+                "02ABC", "0001", "4", "02abc", "0002", "4"));
+        assertFalse(PuzzleCatalogPolicy.matchesLoadedValues(
+                "02ABC", "0001", "4", "02abc", "0001", "5"));
+        assertFalse(PuzzleCatalogPolicy.matchesLoadedValues(
+                null, "0001", "4", "02abc", "0001", "4"));
+    }
 }
