@@ -38,7 +38,7 @@ A successful self-test proves only that this simulated service path works. It do
 
 ## Reliability update and validation boundaries
 
-The Android UI validates the public key as a secp256k1 point and accepts the solver start value only as 1–64 hexadecimal digits (up to 256 bits). This is input-shape validation; it does not prove that the native engine interprets every argument as intended.
+The Android UI validates the public key as a secp256k1 point and accepts the solver start value only as 1–64 hexadecimal digits (up to 256 bits). The Service now independently validates all five arguments again before deleting a prior `found.txt` result or launching the native binary; malformed or missing extras fail closed and are logged without recording their values. This is input validation only; it does not prove that the native engine interprets every argument as intended.
 
 ### Verification matrix
 
