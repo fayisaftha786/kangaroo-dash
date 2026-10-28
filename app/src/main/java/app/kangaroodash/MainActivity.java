@@ -362,6 +362,7 @@ public class MainActivity extends Activity {
             JSONArray records = new JSONArray(json.toString());
             List<String> labels = new ArrayList<>();
             puzzleEntries.clear();
+            int locallyEligibleRecords = 0;
             for (int i = 0; i < records.length(); i++) {
                 JSONObject record = records.optJSONObject(i);
                 if (record == null) continue;
@@ -369,13 +370,46 @@ public class MainActivity extends Activity {
                 int bits = record.optInt("bits", -1);
                 if (id < 1 || bits < 1) continue;
                 puzzleEntries.add(record);
+
                 String state = record.optString("status", "unknown");
-                boolean hasKey = record.opt("public_key") instanceof String
-                        && isPublicKeyHex(record.optString("public_key", ""));
+                Object publicKeyValue = record.opt("public_key");
+                String publicKey = publicKeyValue instanceof String
+                        ? (String) publicKeyValue : "";
+                boolean hasKey = publicKeyValue instanceof String && isPublicKeyHex(publicKey);
+                String startHex = record.optString("range_start_hex", "");
+                String endHex = record.optString("range_end_hex", "");
+                String rangeSize = record.optString("range_size_decimal", "");
                 int searchBits = record.optInt("search_bits", -1);
-                boolean supportedRange = searchBits >= 1 && searchBits <= 256;
-                String availability = !hasKey ? " • no usable public key"
-                        : !supportedRange ? " • metadata only (no supported range)" : "";
+                boolean bitsMatch = bits == id;
+                boolean startValid = isValidStartValue(startHex);
+                boolean rangeMetadataValid = bitsMatch
+                        && PuzzleCatalogPolicy.matchesRangeMetadata(
+                                id, startHex, endHex, rangeSize, searchBits);
+                boolean supportedRange = PuzzleCatalogPolicy.hasSupportedSearchBits(searchBits);
+                boolean blockedBySafety = PuzzleCatalogPolicy.isBlocked(state,
+                        record.opt("private_key_already_public"),
+                        record.opt("unsafe_for_wallets"));
+                String sourceUrl = record.optString("source_url", "");
+                String sourceLabel = record.optString("source_label", "");
+                boolean hasSourceReference = PuzzleCatalogAuditPolicy.hasSourceReference(
+                        sourceUrl, sourceLabel);
+
+                if (PuzzleCatalogAuditPolicy.isLocallyRunnable(state,
+                        record.opt("private_key_already_public"),
+                        record.opt("unsafe_for_wallets"), hasKey, startValid,
+                        rangeMetadataValid, searchBits, sourceUrl, sourceLabel)) {
+                    locallyEligibleRecords++;
+                }
+
+                StringBuilder availability = new StringBuilder();
+                if (blockedBySafety) availability.append(" • blocked: status/safety");
+                if (!hasSourceReference) availability.append(" • blocked: source missing");
+                if (!hasKey) availability.append(" • no usable public key");
+                if (!startValid || !rangeMetadataValid) {
+                    availability.append(" • invalid range metadata");
+                } else if (!supportedRange) {
+                    availability.append(" • unsupported search range");
+                }
                 labels.add("#" + id + " • " + bits + "-bit • " + state + availability);
             }
             ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
@@ -393,7 +427,10 @@ public class MainActivity extends Activity {
                     puzzleHint.setText("Choose a catalog record.");
                 }
             });
-            puzzleHint.setText(puzzleEntries.size() + " catalog records loaded. Selecting a record loads its fields; the engine starts only when START is pressed.");
+            puzzleHint.setText(puzzleEntries.size() + " catalog records loaded; "
+                    + locallyEligibleRecords + " currently meet the local selection gates. "
+                    + "Missing HTTPS source references are blocked. Selecting a record never starts the engine; "
+                    + "START is a separate action. Native search correctness is not implied.");
         } catch (Exception e) {
             puzzleEntries.clear();
             puzzleHint.setText("Catalog unavailable: " + e.getClass().getSimpleName());
