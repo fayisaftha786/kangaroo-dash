@@ -17,25 +17,50 @@ public class PuzzleCatalogAuditPolicyTest {
         assertFalse(PuzzleCatalogAuditPolicy.isHttpsSource("not a URL"));
     }
 
-    @Test public void localEligibilityRequiresEveryExistingRuntimeGate() {
+    @Test public void sourceReferenceRequiresHttpsUrlAndNonEmptyLabel() {
+        assertTrue(PuzzleCatalogAuditPolicy.hasSourceReference(
+                "https://example.org/puzzles/1", "Community reference"));
+        assertFalse(PuzzleCatalogAuditPolicy.hasSourceReference(null, "Community reference"));
+        assertFalse(PuzzleCatalogAuditPolicy.hasSourceReference(
+                "http://example.org/puzzles/1", "Community reference"));
+        assertFalse(PuzzleCatalogAuditPolicy.hasSourceReference(
+                "https://example.org/puzzles/1", null));
+        assertFalse(PuzzleCatalogAuditPolicy.hasSourceReference(
+                "https://example.org/puzzles/1", "   "));
+    }
+
+    @Test public void localEligibilityRequiresEveryRuntimeGateAndSourceReference() {
         assertTrue(PuzzleCatalogAuditPolicy.isLocallyRunnable(
-                "unsolved", false, false, true, true, true, 3));
+                "unsolved", false, false, true, true, true, 3,
+                "https://example.org/puzzles/1", "Test source"));
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
-                "solved", true, true, true, true, true, 3));
+                "solved", true, true, true, true, true, 3,
+                "https://example.org/puzzles/1", "Test source"));
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
-                "unsolved", false, false, false, true, true, 3));
+                "unsolved", false, false, false, true, true, 3,
+                "https://example.org/puzzles/1", "Test source"));
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
-                "unsolved", false, false, true, false, true, 3));
+                "unsolved", false, false, true, false, true, 3,
+                "https://example.org/puzzles/1", "Test source"));
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
-                "unsolved", false, false, true, true, false, 3));
+                "unsolved", false, false, true, true, false, 3,
+                "https://example.org/puzzles/1", "Test source"));
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
-                "unsolved", false, false, true, true, true, 0));
+                "unsolved", false, false, true, true, true, 0,
+                "https://example.org/puzzles/1", "Test source"));
+        assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
+                "unsolved", false, false, true, true, true, 3, null, "Test source"));
+        assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
+                "unsolved", false, false, true, true, true, 3,
+                "https://example.org/puzzles/1", ""));
     }
 
     @Test public void missingSafetyMetadataIsNeverLocallyRunnable() {
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
-                "unsolved", null, false, true, true, true, 3));
+                "unsolved", null, false, true, true, true, 3,
+                "https://example.org/puzzles/1", "Test source"));
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
-                "unsolved", false, null, true, true, true, 3));
+                "unsolved", false, null, true, true, true, 3,
+                "https://example.org/puzzles/1", "Test source"));
     }
 }
