@@ -9,6 +9,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 PUBKEY_RE = re.compile(r"^(?:02|03)[0-9a-fA-F]{64}$|^04[0-9a-fA-F]{128}$")
 HASH160_RE = re.compile(r"^[0-9a-fA-F]{40}$")
@@ -62,8 +63,10 @@ def validate(data):
                 errors.append(f"#{pid}: incorrect range end")
             if size != str(expected_size):
                 errors.append(f"#{pid}: incorrect inclusive range size")
-            if record.get("search_bits") != pid - 1:
-                errors.append(f"#{pid}: search_bits must equal id - 1")
+            search_bits = record.get("search_bits")
+            if (not isinstance(search_bits, int) or isinstance(search_bits, bool)
+                    or search_bits != pid - 1):
+                errors.append(f"#{pid}: search_bits must be integer id - 1")
         except (ValueError, TypeError):
             errors.append(f"#{pid}: malformed range values")
 
@@ -85,14 +88,26 @@ def validate(data):
         status = record.get("status")
         if status not in ("solved", "unsolved"):
             errors.append(f"#{pid}: status must be solved or unsolved")
+        private_public = record.get("private_key_already_public")
+        unsafe = record.get("unsafe_for_wallets")
+        if not isinstance(private_public, bool):
+            errors.append(f"#{pid}: private_key_already_public must be boolean")
+        if not isinstance(unsafe, bool):
+            errors.append(f"#{pid}: unsafe_for_wallets must be boolean")
         if status == "solved":
-            if record.get("private_key_already_public") is not True:
+            if private_public is not True:
                 errors.append(f"#{pid}: solved record must be flagged private_key_already_public")
-            if record.get("unsafe_for_wallets") is not True:
+            if unsafe is not True:
                 errors.append(f"#{pid}: solved record must be flagged unsafe_for_wallets")
+        elif status == "unsolved":
+            if private_public is True:
+                errors.append(f"#{pid}: unsolved record cannot be flagged private_key_already_public")
+            if unsafe is True:
+                errors.append(f"#{pid}: unsolved record cannot be flagged unsafe_for_wallets")
 
         source_url = record.get("source_url")
-        if not isinstance(source_url, str) or not source_url.startswith("https://"):
+        parsed_source = urlparse(source_url) if isinstance(source_url, str) else None
+        if not parsed_source or parsed_source.scheme != "https" or not parsed_source.netloc:
             warnings.append(f"#{pid}: source_url missing or not HTTPS; provenance unverified")
 
     duplicates = sorted({pid for pid in ids if ids.count(pid) > 1})

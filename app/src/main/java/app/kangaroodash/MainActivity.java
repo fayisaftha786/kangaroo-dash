@@ -37,6 +37,9 @@ public class MainActivity extends Activity {
     private Spinner puzzleSpinner;
     private TextView puzzleHint;
     private final List<JSONObject> puzzleEntries = new ArrayList<>();
+    // Fail closed until a catalog entry passes the execution-safety checks.
+    private boolean selectedPuzzleBlocked = true;
+    private String loadedPuzzlePublicKey, loadedPuzzleStart, loadedPuzzleRange;
     private static final int REQUEST_EXPORT_FILE = 7101;
     private String pendingExportName;
 
@@ -389,6 +392,9 @@ public class MainActivity extends Activity {
     }
 
     private void applySelectedPuzzle() {
+        // Any failed/unsupported selection remains blocked until a valid entry loads.
+        selectedPuzzleBlocked = true;
+        loadedPuzzlePublicKey = loadedPuzzleStart = loadedPuzzleRange = null;
         int position = puzzleSpinner == null ? -1 : puzzleSpinner.getSelectedItemPosition();
         if (position < 0 || position >= puzzleEntries.size()) {
             puzzleHint.setText("Choose a valid catalog record first.");
@@ -407,6 +413,12 @@ public class MainActivity extends Activity {
         start.setText("");
         range.setText("");
 
+        if (PuzzleCatalogPolicy.isBlocked(state,
+                record.opt("private_key_already_public"),
+                record.opt("unsafe_for_wallets"))) {
+            puzzleHint.setText("Puzzle #" + id + " is solved or marked unsafe; START is blocked for this record.");
+            return;
+        }
         if (!isPublicKeyHex(key)) {
             puzzleHint.setText("Puzzle #" + id + " has no usable public key; nothing was changed.");
             return;
@@ -415,7 +427,7 @@ public class MainActivity extends Activity {
             puzzleHint.setText("Puzzle #" + id + " has an invalid start value; nothing was changed.");
             return;
         }
-        if (rangeBits < 1 || rangeBits > 256) {
+        if (!PuzzleCatalogPolicy.hasSupportedSearchBits(rangeBits)) {
             puzzleHint.setText("Puzzle #" + id + " has no supported positive search range; nothing was changed.");
             return;
         }
@@ -423,10 +435,20 @@ public class MainActivity extends Activity {
         pub.setText(key);
         start.setText(startHex);
         range.setText(Integer.toString(rangeBits));
-        puzzleHint.setText("Loaded Puzzle #" + id + " (" + state + "). Review the key/range, then press START to launch the native engine. Catalog status is not live-chain verification.");
+        loadedPuzzlePublicKey = key;
+        loadedPuzzleStart = startHex;
+        loadedPuzzleRange = Integer.toString(rangeBits);
+        selectedPuzzleBlocked = false;
+        puzzleHint.setText("Loaded Puzzle #" + id + " (" + state + "). This entry passed local checks only; source and native-engine behavior are not independently verified.");
     }
 
     private void startSolver() {
+        if (selectedPuzzleBlocked || !PuzzleCatalogPolicy.matchesLoadedValues(
+                loadedPuzzlePublicKey, loadedPuzzleStart, loadedPuzzleRange,
+                pub.getText().toString(), start.getText().toString(), range.getText().toString())) {
+            statusText.setText("START blocked: reselect an eligible catalog entry. Changing its key/start/range breaks the catalog match.");
+            return;
+        }
         if (SolverService.isBusy()) {
             statusText.setText(SolverService.running
                     ? "Engine is already running"
