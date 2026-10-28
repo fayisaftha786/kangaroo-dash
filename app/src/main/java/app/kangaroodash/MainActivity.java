@@ -625,7 +625,10 @@ public class MainActivity extends Activity {
         if (selectedPuzzleBlocked || !PuzzleCatalogPolicy.matchesLoadedValues(
                 loadedPuzzlePublicKey, loadedPuzzleStart, loadedPuzzleRange,
                 pub.getText().toString(), start.getText().toString(), range.getText().toString())) {
-            statusText.setText(getString(R.string.start_blocked_reselect));
+            String blockedMessage = getString(R.string.start_blocked_reselect);
+            statusText.setText(blockedMessage);
+            // Keep the reason visible after periodic engine-status refresh replaces statusText.
+            if (puzzleHint != null) puzzleHint.setText(blockedMessage);
             return;
         }
         if (SolverService.isBusy()) {
