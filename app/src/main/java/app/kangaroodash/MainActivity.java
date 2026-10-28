@@ -256,6 +256,16 @@ public class MainActivity extends Activity {
         actionLp.topMargin = dp(18);
         root.addView(actions, actionLp);
 
+        Button selfTestButton = new Button(this);
+        selfTestButton.setText("RUN SAFE SELF-TEST (NO NATIVE SEARCH)");
+        selfTestButton.setTextColor(TEXT);
+        selfTestButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        selfTestButton.setBackground(shape(0xFF164E63, 14));
+        LinearLayout.LayoutParams selfTestLp = lp(-1, 50);
+        selfTestLp.topMargin = dp(10);
+        root.addView(selfTestButton, selfTestLp);
+        selfTestButton.setOnClickListener(v -> startSafeSelfTest());
+
         Button diagnosticsButton = new Button(this);
         diagnosticsButton.setText("VIEW / COPY DIAGNOSTICS");
         diagnosticsButton.setTextColor(TEXT);
@@ -440,6 +450,22 @@ public class MainActivity extends Activity {
         loadedPuzzleRange = Integer.toString(rangeBits);
         selectedPuzzleBlocked = false;
         puzzleHint.setText("Loaded Puzzle #" + id + " (" + state + "). This entry passed local checks only; source and native-engine behavior are not independently verified.");
+    }
+
+    private void startSafeSelfTest() {
+        if (SolverService.isBusy()) {
+            statusText.setText("Self-test unavailable: stop the current session first.");
+            return;
+        }
+        Intent testIntent = new Intent(this, SolverService.class);
+        testIntent.putExtra("diagnostics_test", true);
+        try {
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(testIntent);
+            else startService(testIntent);
+            statusText.setText("SAFE SELF-TEST starting — simulated only; native engine will not launch.");
+        } catch (Exception e) {
+            statusText.setText("Could not start safe self-test: " + e.getMessage());
+        }
     }
 
     private void startSolver() {
