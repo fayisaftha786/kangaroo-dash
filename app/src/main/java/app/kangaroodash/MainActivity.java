@@ -390,6 +390,7 @@ public class MainActivity extends Activity {
             List<String> labels = new ArrayList<>();
             int locallyEligibleRecords = 0;
             int firstEligiblePosition = -1;
+            int firstInspectablePosition = -1;
             for (int i = 0; i < records.length(); i++) {
                 JSONObject record = records.optJSONObject(i);
                 if (record == null) continue;
@@ -426,10 +427,15 @@ public class MainActivity extends Activity {
                 boolean hasSourceReference = PuzzleCatalogAuditPolicy.hasSourceReference(
                         sourceUrl, sourceLabel, sourceScope);
 
+                if (!blockedBySafety && PuzzleCatalogAuditPolicy.hasValidSearchMetadata(
+                        hasKey, startValid, rangeMetadataValid, searchBits)
+                        && firstInspectablePosition < 0) {
+                    firstInspectablePosition = puzzleEntries.size() - 1;
+                }
                 if (PuzzleCatalogAuditPolicy.isExecutionEligible(state,
                         record.opt("private_key_already_public"),
                         record.opt("unsafe_for_wallets"), hasKey, startValid,
-                        rangeMetadataValid, searchBits)) {
+                        rangeMetadataValid, searchBits, sourceUrl, sourceLabel, sourceScope)) {
                     locallyEligibleRecords++;
                     if (firstEligiblePosition < 0) {
                         firstEligiblePosition = puzzleEntries.size() - 1;
@@ -479,7 +485,8 @@ public class MainActivity extends Activity {
             // Show a usable catalog target immediately when one exists. Selection only loads
             // validated fields; it never starts the native engine.
             if (!puzzleEntries.isEmpty()) {
-                int initialSelection = firstEligiblePosition >= 0 ? firstEligiblePosition : 0;
+                int initialSelection = firstEligiblePosition >= 0 ? firstEligiblePosition
+                        : (firstInspectablePosition >= 0 ? firstInspectablePosition : 0);
                 puzzleSpinner.setSelection(initialSelection);
                 applySelectedPuzzle();
             }
@@ -553,8 +560,8 @@ public class MainActivity extends Activity {
     }
 
     private void applySelectedPuzzle() {
-        // Block first. A validated but solved/unsafe entry may be displayed for inspection,
-        // but it must never unlock START.
+        // Every selection starts blocked. Valid public metadata can be displayed for inspection,
+        // but only a fully eligible record can unlock native START.
         selectedPuzzleBlocked = true;
         loadedPuzzlePublicKey = loadedPuzzleStart = loadedPuzzleRange = null;
         updateSelectedPuzzlePreview();
@@ -572,30 +579,30 @@ public class MainActivity extends Activity {
         int id = record.optInt("id", -1);
         String state = record.optString("status", "unknown");
 
-        // Clear values from the previously selected record before validating this selection.
+        // Clear old values first so no selection can inherit another record's data.
         pub.setText("");
         start.setText("");
         range.setText("");
 
-        if (!isPublicKeyHex(key)) {
+        boolean keyValid = isPublicKeyHex(key);
+        boolean startValid = isValidStartValue(startHex);
+        boolean rangeValid = PuzzleCatalogPolicy.matchesRangeMetadata(
+                id, startHex, endHex, rangeSize, rangeBits)
+                && PuzzleCatalogPolicy.hasSupportedSearchBits(rangeBits);
+        if (!keyValid) {
             puzzleHint.setText(getString(R.string.puzzle_missing_public_key, Integer.toString(id)));
             return;
         }
-        if (!isValidStartValue(startHex)) {
+        if (!startValid) {
             puzzleHint.setText(getString(R.string.puzzle_invalid_start, Integer.toString(id)));
             return;
         }
-        if (!PuzzleCatalogPolicy.matchesRangeMetadata(id, startHex, endHex, rangeSize, rangeBits)) {
+        if (!rangeValid) {
             puzzleHint.setText(getString(R.string.puzzle_invalid_range_metadata, Integer.toString(id)));
             return;
         }
-        if (!PuzzleCatalogPolicy.hasSupportedSearchBits(rangeBits)) {
-            puzzleHint.setText(getString(R.string.puzzle_unsupported_range, Integer.toString(id)));
-            return;
-        }
 
-        // Valid metadata is shown in fields for inspection even when the entry is solved/unsafe.
-        // selectedPuzzleBlocked stays true until the entry also passes the safety gate below.
+        // Valid fields are shown for inspection even when execution remains blocked.
         pub.setText(key);
         start.setText(startHex);
         range.setText(getString(R.string.numeric_field_value, rangeBits));
@@ -608,20 +615,21 @@ public class MainActivity extends Activity {
             return;
         }
 
-        loadedPuzzlePublicKey = key;
-        loadedPuzzleStart = startHex;
-        loadedPuzzleRange = Integer.toString(rangeBits);
-        selectedPuzzleBlocked = false;
-
         boolean hasSourceReference = PuzzleCatalogAuditPolicy.hasSourceReference(
                 record.optString("source_url", ""),
                 record.optString("source_label", ""),
                 record.optString("source_scope", "missing"));
-        if (hasSourceReference) {
-            puzzleHint.setText(getString(R.string.puzzle_loaded_summary, id, state));
-        } else {
-            puzzleHint.setText(getString(R.string.puzzle_loaded_source_warning, id));
+        if (!hasSourceReference) {
+            puzzleHint.setText(getString(R.string.puzzle_preview_only_source_blocked,
+                    Integer.toString(id)));
+            return;
         }
+
+        loadedPuzzlePublicKey = key;
+        loadedPuzzleStart = startHex;
+        loadedPuzzleRange = Integer.toString(rangeBits);
+        selectedPuzzleBlocked = false;
+        puzzleHint.setText(getString(R.string.puzzle_loaded_summary, id, state));
     }
 
     private void startSafeSelfTest() {
@@ -1073,16 +1081,11 @@ public class MainActivity extends Activity {
                 boolean startValid = isValidStartValue(startHex);
                 boolean candidate = PuzzleCatalogAuditPolicy.isExecutionEligible(
                         state, privateKeyFlag, unsafeFlag, keyValid, startValid,
-                        rangeValid, searchBits);
+                        rangeValid, searchBits, sourceUrl, sourceLabel, sourceScope);
                 if (candidate) {
                     locallyRunnable++;
+                    locallyRunnableWithHttpsSource++;
                     addExample(localCandidateExamples, id);
-                    if (PuzzleCatalogAuditPolicy.hasSourceReference(
-                            sourceUrl, sourceLabel, sourceScope)) {
-                        locallyRunnableWithHttpsSource++;
-                    } else {
-                        addExample(eligibleMissingSourceExamples, id);
-                    }
                 }
             }
 
@@ -1119,11 +1122,10 @@ public class MainActivity extends Activity {
                     .append(datasetRecordReferences).append('\n')
                     .append("On-chain transaction references: ").append(chainTransactionReferences)
                     .append("; secondary explorer mirrors: ").append(chainExplorerMirrors).append('\n')
-                    .append("Execution-eligible records (safety, valid public key and range): ").append(locallyRunnable).append('\n')
-                    .append("Execution-eligible records with complete per-record source metadata: ")
-                    .append(locallyRunnableWithHttpsSource).append('\n')
-                    .append("Execution-eligible records missing complete per-record source metadata (warning only): ")
-                    .append(locallyRunnable - locallyRunnableWithHttpsSource).append('\n');
+                    .append("Locally eligible after safety, key, range and per-record source gates: ")
+                    .append(locallyRunnable).append('\n')
+                    .append("Locally eligible and with complete HTTPS per-record source plus label: ")
+                    .append(locallyRunnableWithHttpsSource).append('\n');
 
             report.append("\nExamples (up to 12 IDs each):\n");
             report.append("Missing/invalid ID records: ").append(exampleList(invalidIdExamples)).append('\n');
@@ -1131,17 +1133,15 @@ public class MainActivity extends Activity {
             report.append("Missing/invalid public key: ").append(exampleList(missingKeyExamples)).append('\n');
             report.append("Invalid range metadata: ").append(exampleList(invalidRangeExamples)).append('\n');
             report.append("Missing/non-HTTPS per-record source: ").append(exampleList(missingSourceExamples)).append('\n');
-            report.append("Execution-eligible records: ").append(exampleList(localCandidateExamples)).append('\n');
-            report.append("Execution-eligible records with source warning: ")
-                    .append(exampleList(eligibleMissingSourceExamples)).append('\n');
+            report.append("Locally eligible records: ").append(exampleList(localCandidateExamples)).append('\n');
         } catch (Exception e) {
             report.append("\nAUDIT FAILED: could not parse bundled puzzles.json (")
                     .append(e.getClass().getSimpleName()).append(")\n")
                     .append("Details: ").append(e.getMessage());
         }
 
-        report.append("\n\nLIMITS: Missing per-record source metadata is a provenance warning, not a solver-input gate. "
-                + "HTTPS URL presence does not prove source authenticity. These checks do not query the live blockchain, "
+        report.append("\n\nLIMITS: Missing per-record source metadata blocks local eligibility; HTTPS URL presence does not prove source authenticity. "
+                + "These checks do not query the live blockchain, "
                 + "prove a target is correctly labelled, confirm native --range semantics, verify DP save/load, "
                 + "or independently validate a result.");
         return report.toString();
