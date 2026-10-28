@@ -11,7 +11,14 @@ final class SolverResultPolicy {
 
     static String statusForFoundResult(
             boolean engineReportedSuccess,
-            boolean processExitedSuccessfully) {
+            boolean processExitedSuccessfully,
+            boolean processCleanupFailed) {
+        // A process that remains alive is the most urgent state to report. Do not
+        // let found.txt or a native success marker hide a failed termination attempt.
+        if (processCleanupFailed) {
+            return "UNVERIFIED RESULT — native process remains alive after termination attempts; "
+                    + "automatic restart disabled; scan.log പരിശോധിക്കുക";
+        }
         if (engineReportedSuccess && processExitedSuccessfully) {
             return "ENGINE REPORTED SUCCESS — process exited with code 0; independent verification unavailable";
         }
