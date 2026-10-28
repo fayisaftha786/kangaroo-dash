@@ -31,6 +31,12 @@ jobs:
           print(f"PASS: validation mirror matches the bundled catalog ({len(bundled)} records)")
           PY
 
+      - name: Verify catalog addresses and public keys
+        run: python3 data-check/verify_public_keys.py app/src/main/assets/puzzles.json
+
+      - name: Test catalog validator
+        run: python3 -m unittest discover -s data-check -p 'test_*.py'
+
       - name: Setup Java
         uses: actions/setup-java@v6
         with:
