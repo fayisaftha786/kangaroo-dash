@@ -37,6 +37,8 @@ public class MainActivity extends Activity {
     private Spinner puzzleSpinner;
     private TextView puzzleHint;
     private final List<JSONObject> puzzleEntries = new ArrayList<>();
+    // Fail closed until a catalog entry passes the execution-safety checks.
+    private boolean selectedPuzzleBlocked = true;
     private static final int REQUEST_EXPORT_FILE = 7101;
     private String pendingExportName;
 
@@ -389,6 +391,8 @@ public class MainActivity extends Activity {
     }
 
     private void applySelectedPuzzle() {
+        // Any failed/unsupported selection remains blocked until a valid entry loads.
+        selectedPuzzleBlocked = true;
         int position = puzzleSpinner == null ? -1 : puzzleSpinner.getSelectedItemPosition();
         if (position < 0 || position >= puzzleEntries.size()) {
             puzzleHint.setText("Choose a valid catalog record first.");
@@ -407,6 +411,12 @@ public class MainActivity extends Activity {
         start.setText("");
         range.setText("");
 
+        if (PuzzleCatalogPolicy.isBlocked(state,
+                record.optBoolean("private_key_already_public", false),
+                record.optBoolean("unsafe_for_wallets", false))) {
+            puzzleHint.setText("Puzzle #" + id + " is solved or marked unsafe; START is blocked for this record.");
+            return;
+        }
         if (!isPublicKeyHex(key)) {
             puzzleHint.setText("Puzzle #" + id + " has no usable public key; nothing was changed.");
             return;
@@ -423,10 +433,15 @@ public class MainActivity extends Activity {
         pub.setText(key);
         start.setText(startHex);
         range.setText(Integer.toString(rangeBits));
-        puzzleHint.setText("Loaded Puzzle #" + id + " (" + state + "). Review the key/range, then press START to launch the native engine. Catalog status is not live-chain verification.");
+        selectedPuzzleBlocked = false;
+        puzzleHint.setText("Loaded Puzzle #" + id + " (" + state + "). This entry passed local checks only; source and native-engine behavior are not independently verified.");
     }
 
     private void startSolver() {
+        if (selectedPuzzleBlocked) {
+            statusText.setText("START blocked: choose an unsolved catalog record with a usable public key and supported range.");
+            return;
+        }
         if (SolverService.isBusy()) {
             statusText.setText(SolverService.running
                     ? "Engine is already running"
