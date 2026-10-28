@@ -212,6 +212,15 @@ public class SolverService extends Service {
                 runSafeSelfTest(logF);
                 return;
             }
+            // Revalidate at the Service boundary instead of trusting the Activity's
+            // Intent extras. Reject bad requests before touching a prior result file
+            // or invoking the precompiled native binary.
+            String invalidArgument = SolverServiceInputPolicy.validationError(a);
+            if (invalidArgument != null) {
+                status = "Engine not started: invalid " + invalidArgument;
+                appendLog(logF, status);
+                return;
+            }
             File engine = new File(bin);
             if (!engine.isFile() || !engine.canExecute()) {
                 status = "Native engine missing or not executable: " + engine.getName();
