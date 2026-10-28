@@ -36,7 +36,7 @@ public class MainActivity extends Activity {
     private Button startButton, stopButton;
     private TextView liveBadge;
     private Spinner puzzleSpinner;
-    private TextView puzzleHint;
+    private TextView puzzleHint, puzzlePreview;
     private final List<JSONObject> puzzleEntries = new ArrayList<>();
     // Fail closed until a catalog entry passes the execution-safety checks.
     private boolean selectedPuzzleBlocked = true;
@@ -231,6 +231,11 @@ public class MainActivity extends Activity {
         gap(puzzlePicker, 10);
         puzzleSpinner = new Spinner(this);
         puzzlePicker.addView(puzzleSpinner, lp(-1, 48));
+        puzzlePreview = text(getString(R.string.puzzle_preview_choose), 12, MUTED, false);
+        puzzlePreview.setTextIsSelectable(true);
+        LinearLayout.LayoutParams previewLp = lp(-1, -2);
+        previewLp.topMargin = dp(8);
+        puzzlePicker.addView(puzzlePreview, previewLp);
         Button loadPuzzleButton = new Button(this);
         loadPuzzleButton.setText(getString(R.string.load_selected_puzzle));
         loadPuzzleButton.setTextColor(TEXT);
@@ -455,14 +460,73 @@ public class MainActivity extends Activity {
         } catch (Exception e) {
             puzzleEntries.clear();
             puzzleHint.setText(getString(R.string.catalog_unavailable, e.getClass().getSimpleName()));
+            if (puzzlePreview != null) {
+                puzzlePreview.setText(getString(R.string.puzzle_preview_unavailable));
+            }
             statusText.setText(getString(R.string.catalog_load_failed));
         }
+    }
+
+    /**
+     * Display catalog metadata even when a record is not eligible for native execution.
+     * This is informational only: it never fills solver fields or changes the execution gate.
+     */
+    private void updateSelectedPuzzlePreview() {
+        if (puzzlePreview == null) return;
+
+        int position = puzzleSpinner == null ? -1 : puzzleSpinner.getSelectedItemPosition();
+        if (position < 0 || position >= puzzleEntries.size()) {
+            puzzlePreview.setText(getString(R.string.puzzle_preview_choose));
+            return;
+        }
+
+        JSONObject record = puzzleEntries.get(position);
+        int id = record.optInt("id", -1);
+        int bits = record.optInt("bits", -1);
+        String state = record.optString("status", "unknown");
+        String key = record.optString("public_key", "");
+        String startHex = record.optString("range_start_hex", "");
+        String endHex = record.optString("range_end_hex", "");
+        String rangeSize = record.optString("range_size_decimal", "");
+        int searchBits = record.optInt("search_bits", -1);
+
+        boolean blockedBySafety = PuzzleCatalogPolicy.isBlocked(state,
+                record.opt("private_key_already_public"),
+                record.opt("unsafe_for_wallets"));
+        boolean keyValid = isPublicKeyHex(key);
+        boolean rangeValid = bits == id && PuzzleCatalogPolicy.matchesRangeMetadata(
+                id, startHex, endHex, rangeSize, searchBits)
+                && PuzzleCatalogPolicy.hasSupportedSearchBits(searchBits);
+        boolean hasSourceReference = PuzzleCatalogAuditPolicy.hasSourceReference(
+                record.optString("source_url", ""),
+                record.optString("source_label", ""),
+                record.optString("source_scope", "missing"));
+
+        String safetyState = getString(blockedBySafety
+                ? R.string.puzzle_preview_safety_blocked
+                : R.string.puzzle_preview_safety_passed);
+        String keyState = getString(keyValid
+                ? R.string.puzzle_preview_key_valid
+                : R.string.puzzle_preview_key_missing);
+        String rangeState = getString(rangeValid
+                ? R.string.puzzle_preview_range_valid
+                : R.string.puzzle_preview_range_invalid);
+        String sourceState = getString(hasSourceReference
+                ? R.string.puzzle_preview_source_present
+                : R.string.puzzle_preview_source_missing);
+
+        puzzlePreview.setText(getString(R.string.puzzle_preview_details,
+                id, state, safetyState, keyState,
+                startHex.isEmpty() ? "—" : startHex,
+                endHex.isEmpty() ? "—" : endHex,
+                rangeState, sourceState));
     }
 
     private void applySelectedPuzzle() {
         // Any failed/unsupported selection remains blocked until a valid entry loads.
         selectedPuzzleBlocked = true;
         loadedPuzzlePublicKey = loadedPuzzleStart = loadedPuzzleRange = null;
+        updateSelectedPuzzlePreview();
         int position = puzzleSpinner == null ? -1 : puzzleSpinner.getSelectedItemPosition();
         if (position < 0 || position >= puzzleEntries.size()) {
             puzzleHint.setText(getString(R.string.choose_valid_catalog_record));
