@@ -109,6 +109,10 @@ def validate(data):
         parsed_source = urlparse(source_url) if isinstance(source_url, str) else None
         if not parsed_source or parsed_source.scheme.lower() != "https" or not parsed_source.netloc:
             warnings.append(f"#{pid}: source_url missing or not HTTPS; record-level provenance unverified")
+        else:
+            source_label = record.get("source_label")
+            if not isinstance(source_label, str) or not source_label.strip():
+                warnings.append(f"#{pid}: source_url has no evidence label; claim scope is unclear")
 
         dataset_url = record.get("dataset_source_url")
         parsed_dataset = urlparse(dataset_url) if isinstance(dataset_url, str) else None
