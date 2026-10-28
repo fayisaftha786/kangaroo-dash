@@ -425,7 +425,7 @@ public class MainActivity extends Activity {
             puzzleHint.setText("Puzzle #" + id + " has an invalid start value; nothing was changed.");
             return;
         }
-        if (rangeBits < 1 || rangeBits > 256) {
+        if (!PuzzleCatalogPolicy.hasSupportedSearchBits(rangeBits)) {
             puzzleHint.setText("Puzzle #" + id + " has no supported positive search range; nothing was changed.");
             return;
         }
