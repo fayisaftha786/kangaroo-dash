@@ -22,6 +22,16 @@ If you have access to the app's private files through a debuggable build, captur
 
 Before attaching logs to an issue or PR, inspect and redact any secrets, personal identifiers, tokens, local paths, and unrelated app output. Keep an unredacted copy only locally and share the minimum relevant time window. Never include a real wallet private key, seed phrase, or secret.
 
+## Puzzle catalog and input-match checks
+- [ ] A record marked `solved` or `unsafe_for_wallets` is not loaded for execution, and START is blocked.
+- [ ] A record with missing/malformed safety flags is blocked rather than treated as safe.
+- [ ] A record without a usable public key or with an unsupported range is not loaded; a failed selection clears previously loaded values.
+- [ ] After loading an eligible catalog record, compare the displayed public key, start value, and range width with that exact JSON record.
+- [ ] Edit the loaded key, start value, or range width; START must be blocked until the catalog record is selected and loaded again.
+- [ ] Records without an HTTPS source are clearly treated as provenance-unverified. Never label local arithmetic checks as proof of historical/on-chain truth.
+- [ ] Puzzle #1 (`search_bits = 0`) remains explicitly unsupported until the native CLI's zero-width/single-value behavior is proven with a synthetic fixture.
+- [ ] Verify native argument semantics using a mock/echo CLI or a synthetic test fixture that records the received arguments. Do not use real wallet secrets or run an unverified catalog target as a device test.
+
 ## App and service lifecycle
 - [ ] App opens without a crash and all fields remain usable after rotating/reopening if rotation is supported.
 - [ ] START with valid test inputs produces one foreground service and one engine process.
