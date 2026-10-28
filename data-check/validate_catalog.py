@@ -105,6 +105,13 @@ def validate(data):
             if unsafe is True:
                 errors.append(f"#{pid}: unsolved record cannot be flagged unsafe_for_wallets")
 
+        native_search_approved = record.get("native_search_approved")
+        if native_search_approved is not False:
+            errors.append(
+                f"#{pid}: this catalog build is inspection-only; "
+                "native_search_approved must be explicitly false"
+            )
+
         source_url = record.get("source_url")
         parsed_source = urlparse(source_url) if isinstance(source_url, str) else None
         valid_record_source = bool(
