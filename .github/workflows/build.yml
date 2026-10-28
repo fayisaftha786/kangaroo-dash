@@ -129,7 +129,41 @@ jobs:
           machine = struct.unpack_from("<H", data, 18)[0]
           if machine != 183:
               raise SystemExit(f"Verification failed: expected AArch64 e_machine=183, got {machine}")
-          print(f"Verified {native_path}: ELF64, little-endian, AArch64 (e_machine={machine})")
+
+          # Android 15/16 16 KB page-size readiness: all PT_LOAD segments must
+          # advertise at least 16 KB alignment and congruent file/virtual offsets.
+          if len(data) < 64:
+              raise SystemExit("Verification failed: ELF64 header is truncated")
+          phoff = struct.unpack_from("<Q", data, 32)[0]
+          phentsize = struct.unpack_from("<H", data, 54)[0]
+          phnum = struct.unpack_from("<H", data, 56)[0]
+          if phentsize < 56 or phnum == 0 or phoff + phentsize * phnum > len(data):
+              raise SystemExit("Verification failed: invalid ELF64 program-header table")
+          page_size = 16 * 1024
+          load_segments = []
+          for index in range(phnum):
+              entry = phoff + index * phentsize
+              p_type = struct.unpack_from("<I", data, entry)[0]
+              if p_type != 1:  # PT_LOAD
+                  continue
+              p_offset = struct.unpack_from("<Q", data, entry + 8)[0]
+              p_vaddr = struct.unpack_from("<Q", data, entry + 16)[0]
+              p_align = struct.unpack_from("<Q", data, entry + 48)[0]
+              load_segments.append((p_offset, p_vaddr, p_align))
+              if p_align < page_size:
+                  raise SystemExit(
+                      f"Verification failed: PT_LOAD {index} alignment {p_align:#x} "
+                      "is below 16 KB"
+                  )
+              if p_offset % page_size != p_vaddr % page_size:
+                  raise SystemExit(
+                      f"Verification failed: PT_LOAD {index} file/virtual offsets "
+                      "are not congruent modulo 16 KB"
+                  )
+          if not load_segments:
+              raise SystemExit("Verification failed: ELF contains no PT_LOAD segments")
+          print(f"Verified {native_path}: ELF64 AArch64; {len(load_segments)} PT_LOAD segments "
+                "are aligned for 16 KB pages")
           PY
 
       - name: Generate APK SHA-256 checksum

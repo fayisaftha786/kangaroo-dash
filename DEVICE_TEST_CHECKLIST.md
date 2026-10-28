@@ -32,6 +32,15 @@ Before attaching logs to an issue or PR, inspect and redact any secrets, persona
 - [ ] Puzzle #1 (`search_bits = 0`) remains explicitly unsupported until the native CLI's zero-width/single-value behavior is proven with a synthetic fixture.
 - [ ] Verify native argument semantics using a mock/echo CLI or a synthetic test fixture that records the received arguments. Do not use real wallet secrets or run an unverified catalog target as a device test.
 
+## Safe service self-test
+- [ ] Tap `RUN SAFE SELF-TEST (NO NATIVE SEARCH)` while no session is active.
+- [ ] Confirm status explicitly says simulated/self-test and the dashboard counters show `SIM` values.
+- [ ] Confirm the self-test completes automatically in about eight seconds and the notification/wake lock are cleaned up.
+- [ ] Repeat the self-test and press STOP early; confirm status settles to stopped and no native process was launched.
+- [ ] Inspect `scan.log` for `SAFE SELF-TEST` messages and verify they explicitly say the native engine was not launched.
+- [ ] Confirm this test does not create, delete, or modify `dp.json` or `found.txt`.
+- [ ] Remember: this tests Android service/UI lifecycle only. It does not verify `libkangaroo.so`, native range semantics, telemetry compatibility, or DP persistence.
+
 ## App and service lifecycle
 - [ ] App opens without a crash and all fields remain usable after rotating/reopening if rotation is supported.
 - [ ] START with valid test inputs produces one foreground service and one engine process.
