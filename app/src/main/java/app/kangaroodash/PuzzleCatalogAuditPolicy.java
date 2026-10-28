@@ -33,18 +33,31 @@ final class PuzzleCatalogAuditPolicy {
     }
 
     /**
-     * Mirrors the app's local selection gates, including a documented record-specific source.
-     * A true return does not imply source authenticity or native-engine correctness.
+     * Runtime eligibility is based on safety flags, a valid public key, and verified range
+     * arithmetic. Missing source metadata is reported separately: URLs help reviewers trace
+     * claims, but URL presence is not proof of authenticity and must not masquerade as a
+     * mathematical/runtime requirement.
+     */
+    static boolean isExecutionEligible(String status, Object privateKeyAlreadyPublic,
+            Object unsafeForWallets, boolean publicKeyValid, boolean startValid,
+            boolean rangeMetadataValid, int searchBits) {
+        return !PuzzleCatalogPolicy.isBlocked(status, privateKeyAlreadyPublic, unsafeForWallets)
+                && publicKeyValid
+                && startValid
+                && rangeMetadataValid
+                && PuzzleCatalogPolicy.hasSupportedSearchBits(searchBits);
+    }
+
+    /**
+     * Strict provenance metric used by audits only. It is not the runtime START gate.
+     * A true return does not prove source authenticity or native-engine correctness.
      */
     static boolean isLocallyRunnable(String status, Object privateKeyAlreadyPublic,
             Object unsafeForWallets, boolean publicKeyValid, boolean startValid,
             boolean rangeMetadataValid, int searchBits, String sourceUrl, String sourceLabel,
             String sourceScope) {
-        return !PuzzleCatalogPolicy.isBlocked(status, privateKeyAlreadyPublic, unsafeForWallets)
-                && publicKeyValid
-                && startValid
-                && rangeMetadataValid
-                && PuzzleCatalogPolicy.hasSupportedSearchBits(searchBits)
+        return isExecutionEligible(status, privateKeyAlreadyPublic, unsafeForWallets,
+                publicKeyValid, startValid, rangeMetadataValid, searchBits)
                 && hasSourceReference(sourceUrl, sourceLabel, sourceScope);
     }
 }
