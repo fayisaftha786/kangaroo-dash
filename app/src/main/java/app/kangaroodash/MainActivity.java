@@ -11,6 +11,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.*;
 import android.view.Gravity;
 import android.view.View;
+import android.view.WindowInsets;
 import android.widget.*;
 import java.io.File;
 import java.io.BufferedReader;
@@ -138,6 +139,16 @@ public class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(BG);
+        if (Build.VERSION.SDK_INT >= 35) {
+            // Android 15+ enforces edge-to-edge for apps targeting API 35+.
+            // Keep the scrollable controls clear of status/navigation bars and cutouts.
+            scroll.setOnApplyWindowInsetsListener((view, insets) -> {
+                android.graphics.Insets bars = insets.getInsets(
+                        WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+                view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+                return insets;
+            });
+        }
 
         LinearLayout root = column();
         root.setPadding(dp(20), dp(22), dp(20), dp(28));
