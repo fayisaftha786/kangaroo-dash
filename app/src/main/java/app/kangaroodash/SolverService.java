@@ -55,7 +55,9 @@ public class SolverService extends Service {
     static volatile float temp = Float.NaN;
     volatile java.lang.Process proc;
     volatile Thread worker;
+    private static final long WAKE_LOCK_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(10);
     private PowerManager.WakeLock wl;
+    private boolean wakeLockRefreshWarningLogged = false;
 
 
     @Override public IBinder onBind(Intent i) { return null; }
@@ -98,7 +100,11 @@ public class SolverService extends Service {
             }
             wl = ((PowerManager) getSystemService(POWER_SERVICE))
                     .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "k:run");
-            wl.acquire();
+            // The worker renews this lease while it remains responsive. If it gets
+            // stuck, the OS releases the CPU wake lock after the bounded timeout.
+            wl.setReferenceCounted(false);
+            wakeLockRefreshWarningLogged = false;
+            wl.acquire(WAKE_LOCK_TIMEOUT_MS);
         } catch (RuntimeException e) {
             // A duplicate start request must never tear down resources owned by an
             // existing worker if foreground promotion or setup for that request fails.
@@ -289,6 +295,7 @@ public class SolverService extends Service {
                     boolean outputEnded = false;
                     while (running && !Thread.currentThread().isInterrupted() && !outputEnded) {
                         Object output = outputLines.poll(5, TimeUnit.SECONDS);
+                        refreshWakeLock();
                         thermalCheckNow = SystemClock.elapsedRealtime();
                         if (SolverPerformancePolicy.isDue(thermalCheckNow, nextTemperatureCheckAt)) {
                             temp = batt();
@@ -607,6 +614,25 @@ public class SolverService extends Service {
             if (interrupted) Thread.currentThread().interrupt();
         }
         return process.isAlive();
+    }
+
+
+    /**
+     * Renew the bounded CPU-wake-lock lease while the worker is responsive.
+     * Reference counting is disabled at acquisition so repeated renewals cannot
+     * leak a count and prevent release during cleanup.
+     */
+    private synchronized void refreshWakeLock() {
+        if (wl == null) return;
+        try {
+            wl.acquire(WAKE_LOCK_TIMEOUT_MS);
+        } catch (RuntimeException e) {
+            if (!wakeLockRefreshWarningLogged) {
+                wakeLockRefreshWarningLogged = true;
+                status = "Wake lock refresh failed; device may sleep: " + safeMessage(e);
+                appendLog(new File(getFilesDir(), "scan.log"), status);
+            }
+        }
     }
 
     private synchronized void releaseWakeLock() {
