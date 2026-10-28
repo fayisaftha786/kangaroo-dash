@@ -20,7 +20,7 @@
     <string name="puzzle_preview_range_invalid">inconsistent or unsupported</string>
     <string name="puzzle_preview_source_present">record reference present (authenticity not verified)</string>
     <string name="puzzle_preview_source_missing">missing or incomplete</string>
-    <string name="puzzle_preview_details">Puzzle #%1$d preview — status: %2$s; safety flags: %3$s; public key: %4$s; range: %5$s–%6$s; range metadata: %7$s; record-specific source: %8$s; native-search authorization: %9$s. Valid fields may appear for inspection only. Missing approval, solved/unsafe status, missing keys or invalid ranges keep native START blocked. Source presence does not prove authenticity or native-engine correctness.</string>
+    <string name="puzzle_preview_details">Puzzle #%1$d preview — status: %2$s; address: %3$s; nominal reward: %4$s BTC; safety flags: %5$s; public key: %6$s; range: %7$s–%8$s; range metadata: %9$s; record-specific source: %10$s; native-search authorization: %11$s. Valid fields may appear for inspection only. Missing approval, solved/unsafe status, missing keys or invalid ranges keep native START blocked. Source presence does not prove authenticity or native-engine correctness.</string>
     <string name="catalog_load_summary">%1$s loaded for inspection; %2$s pass every current execution gate, including explicit native-search approval. This catalog build is inspection-only: no record is approved for native search. Missing source references, solved/unsafe status, missing keys or invalid ranges never authorize a native search. Selection never starts the engine.</string>
     <string name="catalog_unavailable">Catalog unavailable: %1$s</string>
     <string name="catalog_load_failed">Puzzle catalog could not be loaded</string>
