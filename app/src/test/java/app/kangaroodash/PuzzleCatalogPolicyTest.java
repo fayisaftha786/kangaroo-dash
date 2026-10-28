@@ -61,4 +61,17 @@ public class PuzzleCatalogPolicyTest {
         assertFalse(PuzzleCatalogPolicy.matchesRangeMetadata(0, "00", "00", "1", -1));
         assertFalse(PuzzleCatalogPolicy.matchesRangeMetadata(4, "not-hex", "0f", "8", 3));
     }
+
+    @Test public void rejectsMalformedRangeEndEvenWhenNumericParserWouldAcceptIt() {
+        assertFalse(PuzzleCatalogPolicy.matchesRangeMetadata(4, "08", "+0f", "8", 3));
+        assertFalse(PuzzleCatalogPolicy.matchesRangeMetadata(4, "08", " 0f ", "8", 3));
+        assertFalse(PuzzleCatalogPolicy.matchesRangeMetadata(4, "08", "0x", "8", 3));
+        assertFalse(PuzzleCatalogPolicy.matchesRangeMetadata(4, "08", "0xGG", "8", 3));
+    }
+
+    @Test public void rejectsMalformedRangeStartAndSizeStrings() {
+        assertFalse(PuzzleCatalogPolicy.matchesRangeMetadata(4, "+08", "0f", "8", 3));
+        assertFalse(PuzzleCatalogPolicy.matchesRangeMetadata(4, "0x", "0f", "8", 3));
+        assertFalse(PuzzleCatalogPolicy.matchesRangeMetadata(4, "08", "0f", "+8", 3));
+    }
 }
