@@ -25,6 +25,7 @@
     <string name="catalog_unavailable">Catalog unavailable: %1$s</string>
     <string name="catalog_load_failed">Puzzle catalog could not be loaded</string>
     <string name="choose_valid_catalog_record">Choose a valid catalog record first.</string>
+    <string name="puzzle_preview_only_safety_blocked">Puzzle #%1$s (%2$s) loaded for inspection only. Its valid public key and range are shown, but solved/unsafe safety flags keep native START blocked.</string>
     <string name="puzzle_blocked_safety">Puzzle #%1$s is solved or marked unsafe. Its metadata remains visible in the preview, but native START is blocked.</string>
     <string name="puzzle_missing_source_reference">Puzzle #%1$s has no HTTPS per-record source and label. This is a provenance warning; valid safety, public-key and range checks still decide whether solver fields can load.</string>
     <string name="puzzle_loaded_source_warning">Puzzle #%1$d loaded: key and range checks passed. Warning: no HTTPS per-record source and label; the target is not independently authenticated. The bundled catalog entry is ready for native START, but engine semantics and result correctness remain unverified.</string>
