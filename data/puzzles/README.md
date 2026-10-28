@@ -11,7 +11,10 @@ Each record should eventually include:
 - \`range_start\` and \`range_end\`: exact hexadecimal bounds from a cited source; inclusive/exclusive semantics must be stated explicitly.
 - \`public_key\`: compressed or uncompressed public key exactly as sourced, or null when unavailable.
 - \`address\`: address exactly as sourced, or null when unavailable.
-- \`source_url\`: direct source URL for the record or source dataset.
+- \`source_url\`: direct source URL supporting the record's specific claim; keep null when unavailable.
+- \`source_label\`: describe exactly what the linked record source supports.
+- \`dataset_source_url\` and \`dataset_source_snapshot\`: secondary catalog-wide comparison and its snapshot date; not per-record proof and never a replacement for \`source_url\`.
+- \`chain_tx_url\` and \`chain_tx_url_secondary\`: transaction-explorer links for a recorded spend, not proof of solver identity or live balance.
 - \`verification_status\`: one of \`unverified\`, \`format_checked\`, \`key_address_checked\`, or \`source_cross_checked\`.
 - \`notes\`: optional explanation of missing or conflicting fields.
 
