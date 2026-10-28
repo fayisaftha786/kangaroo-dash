@@ -31,4 +31,16 @@ public class AppHealthCheckTest {
         assertEquals("1023 B", AppHealthCheck.formatBytes(1023));
         assertEquals("1.0 KB", AppHealthCheck.formatBytes(1024));
     }
+
+    @Test public void reportsAllocatableStorageUsingExplicitThreshold() {
+        assertEquals("PASS  Allocatable app storage: 20.0 MB",
+                AppHealthCheck.formatAllocatableStorage(20L * 1024L * 1024L));
+        assertEquals("WARN  Allocatable app storage is low: 19.0 MB",
+                AppHealthCheck.formatAllocatableStorage(19L * 1024L * 1024L));
+    }
+
+    @Test public void reportsAllocatableStorageUnavailableWithoutGuessing() {
+        assertEquals("WARN  Allocatable app storage: unavailable",
+                AppHealthCheck.formatAllocatableStorage(-1));
+    }
 }
