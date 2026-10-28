@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="load_selected_puzzle">LOAD SELECTED PUZZLE</string>
+    <string name="load_selected_puzzle">LOAD / INSPECT SELECTED PUZZLE</string>
     <string name="start_button">▶ START</string>
     <string name="stop_button">■ STOP</string>
     <string name="safe_self_test_button">RUN SAFE SELF-TEST (NO NATIVE SEARCH)</string>
@@ -10,13 +10,24 @@
     <string name="audit_catalog_button">AUDIT FULL PUZZLE CATALOG</string>
     <string name="stopping">Stopping…</string>
     <string name="choose_catalog_record">Choose a catalog record.</string>
+    <string name="puzzle_preview_choose">Select a record to inspect its metadata. Records that fail eligibility checks remain blocked from native START.</string>
+    <string name="puzzle_preview_unavailable">Catalog preview unavailable because the catalog could not be read.</string>
+    <string name="puzzle_preview_safety_blocked">blocked by status/safety flags</string>
+    <string name="puzzle_preview_safety_passed">status/safety flags passed</string>
+    <string name="puzzle_preview_key_valid">present and format-valid</string>
+    <string name="puzzle_preview_key_missing">missing or invalid</string>
+    <string name="puzzle_preview_range_valid">consistent and supported</string>
+    <string name="puzzle_preview_range_invalid">inconsistent or unsupported</string>
+    <string name="puzzle_preview_source_present">record reference present (authenticity not verified)</string>
+    <string name="puzzle_preview_source_missing">missing or incomplete</string>
+    <string name="puzzle_preview_details">Puzzle #%1$d preview — status: %2$s; safety flags: %3$s; public key: %4$s; range: %5$s–%6$s; range metadata: %7$s; record-specific source: %8$s. Preview only. If any eligibility check fails, solver fields stay empty and START remains blocked. Source presence does not prove authenticity or native-engine correctness.</string>
     <string name="catalog_load_summary">%1$s; %2$s. Missing HTTPS source references are blocked. Selecting a record never starts the engine; START is separate. Native search correctness is not implied.</string>
     <string name="catalog_unavailable">Catalog unavailable: %1$s</string>
     <string name="catalog_load_failed">Puzzle catalog could not be loaded</string>
     <string name="choose_valid_catalog_record">Choose a valid catalog record first.</string>
-    <string name="puzzle_blocked_safety">Puzzle #%1$s is solved or marked unsafe; START is blocked for this record.</string>
-    <string name="puzzle_missing_source_reference">Puzzle #%1$s has no HTTPS per-record source and label; a dataset index alone is not enough, so selection is blocked.</string>
-    <string name="puzzle_missing_public_key">Puzzle #%1$s has no usable public key; nothing was changed.</string>
+    <string name="puzzle_blocked_safety">Puzzle #%1$s is solved or marked unsafe. Its metadata remains visible in the preview, but native START is blocked.</string>
+    <string name="puzzle_missing_source_reference">Puzzle #%1$s has no HTTPS per-record source and label. Its metadata remains visible in the preview, but loading it into solver fields and START are blocked.</string>
+    <string name="puzzle_missing_public_key">Puzzle #%1$s has no usable public key. Its metadata remains visible in the preview; solver fields stay empty.</string>
     <string name="puzzle_invalid_start">Puzzle #%1$s has an invalid start value; nothing was changed.</string>
     <string name="puzzle_invalid_range_metadata">Puzzle #%1$s has inconsistent start/end/size metadata; START is blocked.</string>
     <string name="puzzle_unsupported_range">Puzzle #%1$s has no supported positive search range; nothing was changed.</string>
