@@ -21,7 +21,7 @@
     <string name="puzzle_preview_source_present">record reference present (authenticity not verified)</string>
     <string name="puzzle_preview_source_missing">missing or incomplete</string>
     <string name="puzzle_preview_details">Puzzle #%1$d preview — status: %2$s; safety flags: %3$s; public key: %4$s; range: %5$s–%6$s; range metadata: %7$s; record-specific source: %8$s. Preview only. If any eligibility check fails, solver fields stay empty and START remains blocked. Source presence does not prove authenticity or native-engine correctness.</string>
-    <string name="catalog_load_summary">%1$s; %2$s. Missing HTTPS source references are blocked. Selecting a record never starts the engine; START is separate. Native search correctness is not implied.</string>
+    <string name="catalog_load_summary">%1$s loaded for preview; %2$s pass all execution gates. Records failing status/safety, source, public-key or range checks stay out of solver fields. If eligible count is zero, native START will be blocked. Selecting a record never starts the engine; search correctness is not implied.</string>
     <string name="catalog_unavailable">Catalog unavailable: %1$s</string>
     <string name="catalog_load_failed">Puzzle catalog could not be loaded</string>
     <string name="choose_valid_catalog_record">Choose a valid catalog record first.</string>

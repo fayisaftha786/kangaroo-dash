@@ -38,6 +38,10 @@ public class MainActivity extends Activity {
     private Spinner puzzleSpinner;
     private TextView puzzleHint, puzzlePreview;
     private final List<JSONObject> puzzleEntries = new ArrayList<>();
+    private boolean catalogDataParsed = false;
+    private int catalogRawRecordCount = 0;
+    private int catalogEligibleEntryCount = 0;
+    private String catalogLoadError = "";
     // Fail closed until a catalog entry passes the execution-safety checks.
     private boolean selectedPuzzleBlocked = true;
     private String loadedPuzzlePublicKey, loadedPuzzleStart, loadedPuzzleRange;
@@ -370,14 +374,20 @@ public class MainActivity extends Activity {
     }
 
     private void loadPuzzleCatalog() {
+        catalogDataParsed = false;
+        catalogRawRecordCount = 0;
+        catalogEligibleEntryCount = 0;
+        catalogLoadError = "";
+        puzzleEntries.clear();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(
                 getAssets().open("puzzles.json"), StandardCharsets.UTF_8))) {
             StringBuilder json = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) json.append(line);
             JSONArray records = new JSONArray(json.toString());
+            catalogDataParsed = true;
+            catalogRawRecordCount = records.length();
             List<String> labels = new ArrayList<>();
-            puzzleEntries.clear();
             int locallyEligibleRecords = 0;
             for (int i = 0; i < records.length(); i++) {
                 JSONObject record = records.optJSONObject(i);
@@ -456,9 +466,18 @@ public class MainActivity extends Activity {
                     R.plurals.catalog_records_loaded, puzzleEntries.size(), puzzleEntries.size());
             String eligibleCount = getResources().getQuantityString(
                     R.plurals.catalog_records_eligible, locallyEligibleRecords, locallyEligibleRecords);
+            catalogEligibleEntryCount = locallyEligibleRecords;
+            if (puzzleEntries.size() != 160 || catalogRawRecordCount != 160) {
+                catalogLoadError = "Expected 160 valid records; parsed JSON records="
+                        + catalogRawRecordCount + ", usable records=" + puzzleEntries.size();
+            }
             puzzleHint.setText(getString(R.string.catalog_load_summary, loadedCount, eligibleCount));
         } catch (Exception e) {
+            catalogDataParsed = false;
+            catalogLoadError = e.getClass().getSimpleName();
             puzzleEntries.clear();
+            catalogRawRecordCount = 0;
+            catalogEligibleEntryCount = 0;
             puzzleHint.setText(getString(R.string.catalog_unavailable, e.getClass().getSimpleName()));
             if (puzzlePreview != null) {
                 puzzlePreview.setText(getString(R.string.puzzle_preview_unavailable));
@@ -606,7 +625,10 @@ public class MainActivity extends Activity {
         if (selectedPuzzleBlocked || !PuzzleCatalogPolicy.matchesLoadedValues(
                 loadedPuzzlePublicKey, loadedPuzzleStart, loadedPuzzleRange,
                 pub.getText().toString(), start.getText().toString(), range.getText().toString())) {
-            statusText.setText(getString(R.string.start_blocked_reselect));
+            String blockedMessage = getString(R.string.start_blocked_reselect);
+            statusText.setText(blockedMessage);
+            // Keep the reason visible after periodic engine-status refresh replaces statusText.
+            if (puzzleHint != null) puzzleHint.setText(blockedMessage);
             return;
         }
         if (SolverService.isBusy()) {
@@ -729,13 +751,27 @@ public class MainActivity extends Activity {
     private void showDiagnostics() {
         StringBuilder report = new StringBuilder();
         report.append("Kangaroo local diagnostics\n")
-                .append("Status: ").append(SolverService.status).append('\n')
-                .append("Running: ").append(SolverService.running).append('\n')
+                .append("Engine status: ").append(SolverService.status).append('\n')
+                .append("Engine running: ").append(SolverService.running).append('\n')
                 .append("Operations: ").append(SolverService.ops).append('\n')
                 .append("Distinguished points: ").append(SolverService.dps).append('\n')
-                .append("Android: ").append(Build.VERSION.RELEASE)
+                .append("Dashboard message: ")
+                .append(statusText == null ? "unavailable" : statusText.getText()).append('\n')
+                .append("Catalog JSON parsed: ").append(catalogDataParsed).append('\n')
+                .append("Catalog records in JSON: ").append(catalogRawRecordCount).append('\n')
+                .append("Usable catalog entries: ").append(puzzleEntries.size()).append("/160\n")
+                .append("Entries passing current execution gates: ")
+                .append(catalogEligibleEntryCount).append('\n')
+                .append("Selected entry gate: ").append(selectedPuzzleBlocked ? "BLOCKED" : "PASSED").append('\n')
+                .append("Catalog selection message: ")
+                .append(puzzleHint == null ? "unavailable" : puzzleHint.getText()).append('\n');
+        if (!catalogLoadError.isEmpty()) {
+            report.append("Catalog load detail: ").append(catalogLoadError).append('\n');
+        }
+        report.append("Android: ").append(Build.VERSION.RELEASE)
                 .append(" (API ").append(Build.VERSION.SDK_INT).append(")\n")
-                .append("\nReview this text before sharing; engine logs may contain target or configuration details.\n");
+                .append("\nNo engine log entries can be normal when START is rejected in the Activity before the Service starts.\n")
+                .append("Review this text before sharing; engine logs may contain target or configuration details.\n");
 
         File dir = getFilesDir();
         try {
