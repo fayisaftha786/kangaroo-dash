@@ -402,15 +402,16 @@ public class MainActivity extends Activity {
                         record.opt("unsafe_for_wallets"));
                 String sourceUrl = record.optString("source_url", "");
                 String sourceLabel = record.optString("source_label", "");
+                String sourceScope = record.optString("source_scope", "missing");
                 String datasetSourceUrl = record.optString("dataset_source_url", "");
                 boolean hasDatasetReference = PuzzleCatalogAuditPolicy.isHttpsSource(datasetSourceUrl);
                 boolean hasSourceReference = PuzzleCatalogAuditPolicy.hasSourceReference(
-                        sourceUrl, sourceLabel);
+                        sourceUrl, sourceLabel, sourceScope);
 
                 if (PuzzleCatalogAuditPolicy.isLocallyRunnable(state,
                         record.opt("private_key_already_public"),
                         record.opt("unsafe_for_wallets"), hasKey, startValid,
-                        rangeMetadataValid, searchBits, sourceUrl, sourceLabel)) {
+                        rangeMetadataValid, searchBits, sourceUrl, sourceLabel, sourceScope)) {
                     locallyEligibleRecords++;
                 }
 
@@ -488,7 +489,8 @@ public class MainActivity extends Activity {
         }
         if (!PuzzleCatalogAuditPolicy.hasSourceReference(
                 record.optString("source_url", ""),
-                record.optString("source_label", ""))) {
+                record.optString("source_label", ""),
+                record.optString("source_scope", "missing"))) {
             puzzleHint.setText(getString(R.string.puzzle_missing_source_reference, Integer.toString(id)));
             return;
         }
@@ -919,6 +921,9 @@ public class MainActivity extends Activity {
                 Object sourceLabelValue = record.opt("source_label");
                 String sourceLabel = sourceLabelValue instanceof String
                         ? (String) sourceLabelValue : null;
+                Object sourceScopeValue = record.opt("source_scope");
+                String sourceScope = sourceScopeValue instanceof String
+                        ? (String) sourceScopeValue : "missing";
                 boolean httpsSource = PuzzleCatalogAuditPolicy.isHttpsSource(sourceUrl);
                 if (httpsSource) httpsSources++;
                 else {
@@ -942,7 +947,7 @@ public class MainActivity extends Activity {
                 boolean startValid = isValidStartValue(startHex);
                 boolean candidate = PuzzleCatalogAuditPolicy.isLocallyRunnable(
                         state, privateKeyFlag, unsafeFlag, keyValid, startValid,
-                        rangeValid, searchBits, sourceUrl, sourceLabel);
+                        rangeValid, searchBits, sourceUrl, sourceLabel, sourceScope);
                 if (candidate) {
                     locallyRunnable++;
                     addExample(localCandidateExamples, id);
