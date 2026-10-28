@@ -107,7 +107,18 @@ def validate(data):
 
         source_url = record.get("source_url")
         parsed_source = urlparse(source_url) if isinstance(source_url, str) else None
-        if not parsed_source or parsed_source.scheme.lower() != "https" or not parsed_source.netloc:
+        valid_record_source = bool(
+            parsed_source and parsed_source.scheme.lower() == "https" and parsed_source.netloc
+        )
+        source_scope = record.get("source_scope")
+        if source_scope not in {"record", "missing"}:
+            errors.append(f"#{pid}: source_scope must be 'record' or 'missing'")
+        elif valid_record_source and source_scope != "record":
+            errors.append(f"#{pid}: source_url is present but source_scope is not 'record'")
+        elif not valid_record_source and source_scope == "record":
+            errors.append(f"#{pid}: source_scope='record' requires a valid HTTPS source_url")
+
+        if not valid_record_source:
             warnings.append(f"#{pid}: source_url missing or not HTTPS; record-level provenance unverified")
         else:
             source_label = record.get("source_label")
