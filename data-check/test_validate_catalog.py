@@ -63,9 +63,15 @@ class BundledCatalogValidatorTests(unittest.TestCase):
         errors, _ = validate(records)
         self.assertTrue(any("#1: unsafe_for_wallets must be boolean" in e for e in errors))
 
-    def test_solved_records_require_both_unsafe_flags(self):
+    def test_solved_records_require_both_safety_flags(self):
         records = valid_catalog()
         records[0]["status"] = "solved"
+        errors, _ = validate(records)
+        self.assertTrue(any("#1: solved record must be flagged private_key_already_public" in e
+                            for e in errors))
+        self.assertTrue(any("#1: solved record must be flagged unsafe_for_wallets" in e
+                            for e in errors))
+
         records[0]["private_key_already_public"] = True
         records[0]["unsafe_for_wallets"] = True
         errors, _ = validate(records)
