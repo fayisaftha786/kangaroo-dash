@@ -18,6 +18,7 @@ def valid_catalog():
             "hash160": None,
             "private_key_already_public": False,
             "unsafe_for_wallets": False,
+            "native_search_approved": False,
             "source_url": f"https://example.org/catalog/{pid}",
             "source_scope": "record",
             "source_label": "Synthetic per-record source",
@@ -150,6 +151,25 @@ class BundledCatalogValidatorTests(unittest.TestCase):
             self.assertIn(f"puzzle #{pid}", record.get("source_label", "").lower())
             self.assertEqual(record.get("status"), "unsolved")
             self.assertTrue(record.get("public_key"))
+            self.assertIs(record.get("native_search_approved"), False)
+
+    def test_catalog_is_inspection_only_and_rejects_native_search_approval(self):
+        records = valid_catalog()
+        errors, _ = validate(records)
+        self.assertEqual(errors, [])
+        records[139]["native_search_approved"] = True
+        errors, _ = validate(records)
+        self.assertTrue(any(
+            "#140: this catalog build is inspection-only; native_search_approved"
+            in error for error in errors
+        ))
+        records = valid_catalog()
+        records[0].pop("native_search_approved")
+        errors, _ = validate(records)
+        self.assertTrue(any(
+            "#1: this catalog build is inspection-only; native_search_approved"
+            in error for error in errors
+        ))
 
     def test_non_array_root_is_rejected(self):
         errors, warnings = validate({"id": 1})
