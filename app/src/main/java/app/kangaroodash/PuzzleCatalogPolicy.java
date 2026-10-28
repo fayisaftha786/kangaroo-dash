@@ -4,11 +4,14 @@ package app.kangaroodash;
 final class PuzzleCatalogPolicy {
     private PuzzleCatalogPolicy() {}
 
-    static boolean isBlocked(String status, boolean privateKeyAlreadyPublic,
-            boolean unsafeForWallets) {
+    static boolean isBlocked(String status, Object privateKeyAlreadyPublic,
+            Object unsafeForWallets) {
+        // Missing/malformed safety metadata is unknown, not an implicit safe value.
         return !"unsolved".equalsIgnoreCase(status)
-                || privateKeyAlreadyPublic
-                || unsafeForWallets;
+                || !(privateKeyAlreadyPublic instanceof Boolean)
+                || !(unsafeForWallets instanceof Boolean)
+                || (Boolean) privateKeyAlreadyPublic
+                || (Boolean) unsafeForWallets;
     }
 
     static boolean hasSupportedSearchBits(int searchBits) {
