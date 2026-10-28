@@ -47,6 +47,11 @@ public class PuzzleCatalogPolicyTest {
                 null, "0001", "4", "02abc", "0001", "4"));
     }
 
+    @Test public void previewWithClearedSolverFieldsCannotAuthorizeStart() {
+        assertFalse(PuzzleCatalogPolicy.matchesLoadedValues(
+                null, null, null, "02ABC", "0001", "4"));
+    }
+
     @Test public void acceptsInternallyConsistentInclusiveRangeMetadata() {
         assertTrue(PuzzleCatalogPolicy.matchesRangeMetadata(4, "08", "0f", "8", 3));
         assertTrue(PuzzleCatalogPolicy.matchesRangeMetadata(4,
