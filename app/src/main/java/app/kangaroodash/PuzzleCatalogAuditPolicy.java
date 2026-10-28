@@ -33,12 +33,6 @@ final class PuzzleCatalogAuditPolicy {
     }
 
     /**
-     * Runtime eligibility is based on safety flags, a valid public key, and verified range
-     * arithmetic. Missing source metadata is reported separately: URLs help reviewers trace
-     * claims, but URL presence is not proof of authenticity and must not masquerade as a
-     * mathematical/runtime requirement.
-     */
-        /**
      * Checks input metadata separately so the UI can display valid data for inspection.
      * This does not authorize starting the native engine.
      */
