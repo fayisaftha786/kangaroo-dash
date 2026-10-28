@@ -18,4 +18,14 @@ final class PuzzleCatalogPolicy {
         // The current native UI contract supports positive range widths only.
         return searchBits >= 1 && searchBits <= 256;
     }
+
+    static boolean matchesLoadedValues(String expectedPublicKey, String expectedStart,
+            String expectedRange, String actualPublicKey, String actualStart,
+            String actualRange) {
+        return expectedPublicKey != null && expectedStart != null && expectedRange != null
+                && actualPublicKey != null && actualStart != null && actualRange != null
+                && expectedPublicKey.equalsIgnoreCase(actualPublicKey.trim())
+                && expectedStart.equalsIgnoreCase(actualStart.trim())
+                && expectedRange.equals(actualRange.trim());
+    }
 }
