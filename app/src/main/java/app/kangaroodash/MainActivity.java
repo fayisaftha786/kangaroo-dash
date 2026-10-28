@@ -527,6 +527,8 @@ public class MainActivity extends Activity {
         int id = record.optInt("id", -1);
         int bits = record.optInt("bits", -1);
         String state = record.optString("status", "unknown");
+        String addressValue = record.optString("address", "").trim();
+        String rewardValue = record.optString("reward_btc", "").trim();
         String key = record.optString("public_key", "");
         String startHex = record.optString("range_start_hex", "");
         String endHex = record.optString("range_end_hex", "");
@@ -559,12 +561,21 @@ public class MainActivity extends Activity {
         String sourceState = getString(hasSourceReference
                 ? R.string.puzzle_preview_source_present
                 : R.string.puzzle_preview_source_missing);
+        if (hasSourceReference) {
+            String sourceLabel = record.optString("source_label", "").trim();
+            String sourceUrl = record.optString("source_url", "").trim();
+            if (!sourceLabel.isEmpty()) sourceState = sourceLabel;
+            if (!sourceUrl.isEmpty()) sourceState += " (" + sourceUrl + ")";
+        }
         String executionApprovalState = getString(nativeSearchApproved
                 ? R.string.puzzle_preview_execution_approved
                 : R.string.puzzle_preview_execution_unapproved);
 
         puzzlePreview.setText(getString(R.string.puzzle_preview_details,
-                id, state, safetyState, keyState,
+                id, state,
+                addressValue.isEmpty() ? "—" : addressValue,
+                rewardValue.isEmpty() ? "—" : rewardValue,
+                safetyState, keyState,
                 startHex.isEmpty() ? "—" : startHex,
                 endHex.isEmpty() ? "—" : endHex,
                 rangeState, sourceState, executionApprovalState));
