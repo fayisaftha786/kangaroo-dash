@@ -389,6 +389,8 @@ public class MainActivity extends Activity {
             catalogRawRecordCount = records.length();
             List<String> labels = new ArrayList<>();
             int locallyEligibleRecords = 0;
+            int firstEligiblePosition = -1;
+            int firstInspectablePosition = -1;
             for (int i = 0; i < records.length(); i++) {
                 JSONObject record = records.optJSONObject(i);
                 if (record == null) continue;
@@ -425,19 +427,27 @@ public class MainActivity extends Activity {
                 boolean hasSourceReference = PuzzleCatalogAuditPolicy.hasSourceReference(
                         sourceUrl, sourceLabel, sourceScope);
 
-                if (PuzzleCatalogAuditPolicy.isLocallyRunnable(state,
+                if (!blockedBySafety && PuzzleCatalogAuditPolicy.hasValidSearchMetadata(
+                        hasKey, startValid, rangeMetadataValid, searchBits)
+                        && firstInspectablePosition < 0) {
+                    firstInspectablePosition = puzzleEntries.size() - 1;
+                }
+                if (PuzzleCatalogAuditPolicy.isExecutionEligible(state,
                         record.opt("private_key_already_public"),
                         record.opt("unsafe_for_wallets"), hasKey, startValid,
                         rangeMetadataValid, searchBits, sourceUrl, sourceLabel, sourceScope)) {
                     locallyEligibleRecords++;
+                    if (firstEligiblePosition < 0) {
+                        firstEligiblePosition = puzzleEntries.size() - 1;
+                    }
                 }
 
                 StringBuilder availability = new StringBuilder();
                 if (blockedBySafety) availability.append(" • blocked: status/safety");
                 if (!hasSourceReference) {
                     availability.append(hasDatasetReference
-                            ? " • primary record source missing (secondary atlas link only)"
-                            : " • primary source missing");
+                            ? " • source warning: secondary catalog reference only"
+                            : " • source warning: per-record URL missing");
                 }
                 if (!hasKey) availability.append(" • no usable public key");
                 if (!startValid || !rangeMetadataValid) {
@@ -472,6 +482,14 @@ public class MainActivity extends Activity {
                         + catalogRawRecordCount + ", usable records=" + puzzleEntries.size();
             }
             puzzleHint.setText(getString(R.string.catalog_load_summary, loadedCount, eligibleCount));
+            // Show a usable catalog target immediately when one exists. Selection only loads
+            // validated fields; it never starts the native engine.
+            if (!puzzleEntries.isEmpty()) {
+                int initialSelection = firstEligiblePosition >= 0 ? firstEligiblePosition
+                        : (firstInspectablePosition >= 0 ? firstInspectablePosition : 0);
+                puzzleSpinner.setSelection(initialSelection);
+                applySelectedPuzzle();
+            }
         } catch (Exception e) {
             catalogDataParsed = false;
             catalogLoadError = e.getClass().getSimpleName();
@@ -542,7 +560,8 @@ public class MainActivity extends Activity {
     }
 
     private void applySelectedPuzzle() {
-        // Any failed/unsupported selection remains blocked until a valid entry loads.
+        // Every selection starts blocked. Valid public metadata can be displayed for inspection,
+        // but only a fully eligible record can unlock native START.
         selectedPuzzleBlocked = true;
         loadedPuzzlePublicKey = loadedPuzzleStart = loadedPuzzleRange = null;
         updateSelectedPuzzlePreview();
@@ -560,45 +579,52 @@ public class MainActivity extends Activity {
         int id = record.optInt("id", -1);
         String state = record.optString("status", "unknown");
 
-        // Clear previously loaded catalog values so an invalid selection cannot
-        // leave a different puzzle's key/range visible as if it belonged here.
+        // Clear old values first so no selection can inherit another record's data.
         pub.setText("");
         start.setText("");
         range.setText("");
 
-        if (PuzzleCatalogPolicy.isBlocked(state,
-                record.opt("private_key_already_public"),
-                record.opt("unsafe_for_wallets"))) {
-            puzzleHint.setText(getString(R.string.puzzle_blocked_safety, Integer.toString(id)));
-            return;
-        }
-        if (!PuzzleCatalogAuditPolicy.hasSourceReference(
-                record.optString("source_url", ""),
-                record.optString("source_label", ""),
-                record.optString("source_scope", "missing"))) {
-            puzzleHint.setText(getString(R.string.puzzle_missing_source_reference, Integer.toString(id)));
-            return;
-        }
-        if (!isPublicKeyHex(key)) {
+        boolean keyValid = isPublicKeyHex(key);
+        boolean startValid = isValidStartValue(startHex);
+        boolean rangeValid = PuzzleCatalogPolicy.matchesRangeMetadata(
+                id, startHex, endHex, rangeSize, rangeBits)
+                && PuzzleCatalogPolicy.hasSupportedSearchBits(rangeBits);
+        if (!keyValid) {
             puzzleHint.setText(getString(R.string.puzzle_missing_public_key, Integer.toString(id)));
             return;
         }
-        if (!isValidStartValue(startHex)) {
+        if (!startValid) {
             puzzleHint.setText(getString(R.string.puzzle_invalid_start, Integer.toString(id)));
             return;
         }
-        if (!PuzzleCatalogPolicy.matchesRangeMetadata(id, startHex, endHex, rangeSize, rangeBits)) {
+        if (!rangeValid) {
             puzzleHint.setText(getString(R.string.puzzle_invalid_range_metadata, Integer.toString(id)));
             return;
         }
-        if (!PuzzleCatalogPolicy.hasSupportedSearchBits(rangeBits)) {
-            puzzleHint.setText(getString(R.string.puzzle_unsupported_range, Integer.toString(id)));
-            return;
-        }
 
+        // Valid fields are shown for inspection even when execution remains blocked.
         pub.setText(key);
         start.setText(startHex);
         range.setText(getString(R.string.numeric_field_value, rangeBits));
+
+        if (PuzzleCatalogPolicy.isBlocked(state,
+                record.opt("private_key_already_public"),
+                record.opt("unsafe_for_wallets"))) {
+            puzzleHint.setText(getString(R.string.puzzle_preview_only_safety_blocked,
+                    Integer.toString(id), state));
+            return;
+        }
+
+        boolean hasSourceReference = PuzzleCatalogAuditPolicy.hasSourceReference(
+                record.optString("source_url", ""),
+                record.optString("source_label", ""),
+                record.optString("source_scope", "missing"));
+        if (!hasSourceReference) {
+            puzzleHint.setText(getString(R.string.puzzle_preview_only_source_blocked,
+                    Integer.toString(id)));
+            return;
+        }
+
         loadedPuzzlePublicKey = key;
         loadedPuzzleStart = startHex;
         loadedPuzzleRange = Integer.toString(rangeBits);
@@ -938,6 +964,7 @@ public class MainActivity extends Activity {
         java.util.List<Integer> invalidRangeExamples = new java.util.ArrayList<>();
         java.util.List<Integer> missingSourceExamples = new java.util.ArrayList<>();
         java.util.List<Integer> localCandidateExamples = new java.util.ArrayList<>();
+        java.util.List<Integer> eligibleMissingSourceExamples = new java.util.ArrayList<>();
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(
                 getAssets().open("puzzles.json"), StandardCharsets.UTF_8))) {
@@ -1052,13 +1079,13 @@ public class MainActivity extends Activity {
                 }
 
                 boolean startValid = isValidStartValue(startHex);
-                boolean candidate = PuzzleCatalogAuditPolicy.isLocallyRunnable(
+                boolean candidate = PuzzleCatalogAuditPolicy.isExecutionEligible(
                         state, privateKeyFlag, unsafeFlag, keyValid, startValid,
                         rangeValid, searchBits, sourceUrl, sourceLabel, sourceScope);
                 if (candidate) {
                     locallyRunnable++;
+                    locallyRunnableWithHttpsSource++;
                     addExample(localCandidateExamples, id);
-                    if (httpsSource) locallyRunnableWithHttpsSource++;
                 }
             }
 
@@ -1095,8 +1122,9 @@ public class MainActivity extends Activity {
                     .append(datasetRecordReferences).append('\n')
                     .append("On-chain transaction references: ").append(chainTransactionReferences)
                     .append("; secondary explorer mirrors: ").append(chainExplorerMirrors).append('\n')
-                    .append("Locally eligible after per-record source-reference gate: ").append(locallyRunnable).append('\n')
-                    .append("Locally eligible and with an HTTPS per-record source plus label: ")
+                    .append("Locally eligible after safety, key, range and per-record source gates: ")
+                    .append(locallyRunnable).append('\n')
+                    .append("Locally eligible and with complete HTTPS per-record source plus label: ")
                     .append(locallyRunnableWithHttpsSource).append('\n');
 
             report.append("\nExamples (up to 12 IDs each):\n");
@@ -1112,9 +1140,10 @@ public class MainActivity extends Activity {
                     .append("Details: ").append(e.getMessage());
         }
 
-        report.append("\n\nLIMITS: HTTPS URL presence does not prove source authenticity. "
-                + "These checks do not query the live blockchain, prove a target is correctly labelled, "
-                + "confirm native --range semantics, verify DP save/load, or independently validate a result.");
+        report.append("\n\nLIMITS: Missing per-record source metadata blocks local eligibility; HTTPS URL presence does not prove source authenticity. "
+                + "These checks do not query the live blockchain, "
+                + "prove a target is correctly labelled, confirm native --range semantics, verify DP save/load, "
+                + "or independently validate a result.");
         return report.toString();
     }
 

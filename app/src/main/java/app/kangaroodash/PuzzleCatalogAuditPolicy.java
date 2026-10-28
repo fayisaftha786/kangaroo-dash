@@ -33,18 +33,35 @@ final class PuzzleCatalogAuditPolicy {
     }
 
     /**
-     * Mirrors the app's local selection gates, including a documented record-specific source.
-     * A true return does not imply source authenticity or native-engine correctness.
+     * Checks input metadata separately so the UI can display valid data for inspection.
+     * This does not authorize starting the native engine.
      */
-    static boolean isLocallyRunnable(String status, Object privateKeyAlreadyPublic,
+    static boolean hasValidSearchMetadata(boolean publicKeyValid, boolean startValid,
+            boolean rangeMetadataValid, int searchBits) {
+        return publicKeyValid && startValid && rangeMetadataValid
+                && PuzzleCatalogPolicy.hasSupportedSearchBits(searchBits);
+    }
+
+    /**
+     * Runtime eligibility requires safety flags, valid search metadata, and a complete
+     * record-scoped HTTPS source reference. URL presence alone does not prove authenticity.
+     */
+    static boolean isExecutionEligible(String status, Object privateKeyAlreadyPublic,
             Object unsafeForWallets, boolean publicKeyValid, boolean startValid,
             boolean rangeMetadataValid, int searchBits, String sourceUrl, String sourceLabel,
             String sourceScope) {
         return !PuzzleCatalogPolicy.isBlocked(status, privateKeyAlreadyPublic, unsafeForWallets)
-                && publicKeyValid
-                && startValid
-                && rangeMetadataValid
-                && PuzzleCatalogPolicy.hasSupportedSearchBits(searchBits)
+                && hasValidSearchMetadata(publicKeyValid, startValid, rangeMetadataValid, searchBits)
                 && hasSourceReference(sourceUrl, sourceLabel, sourceScope);
+    }
+
+    /** Compatibility name used by the catalog audit for a locally eligible record. */
+    static boolean isLocallyRunnable(String status, Object privateKeyAlreadyPublic,
+            Object unsafeForWallets, boolean publicKeyValid, boolean startValid,
+            boolean rangeMetadataValid, int searchBits, String sourceUrl, String sourceLabel,
+            String sourceScope) {
+        return isExecutionEligible(status, privateKeyAlreadyPublic, unsafeForWallets,
+                publicKeyValid, startValid, rangeMetadataValid, searchBits,
+                sourceUrl, sourceLabel, sourceScope);
     }
 }
