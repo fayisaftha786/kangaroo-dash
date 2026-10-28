@@ -227,6 +227,7 @@ public class SolverService extends Service {
             while (running && !Thread.currentThread().isInterrupted()) {
                 boolean processVerified = false;
                 int exitCode = Integer.MIN_VALUE;
+                boolean processExitedSuccessfully = false;
                 boolean thermalStopRequested = false;
                 Thread outputReader = null;
                 long thermalCheckNow = SystemClock.elapsedRealtime();
@@ -403,6 +404,7 @@ public class SolverService extends Service {
                             running = false;
                         } else {
                             exitCode = completedProcess.exitValue();
+                            processExitedSuccessfully = exitCode == 0;
                             appendLog(logF, "Solver process exit code: " + exitCode);
                         }
                         appendLog(logF, "DP file after exit: " + fileState(new File(dir, "dp.json")));
@@ -447,11 +449,8 @@ public class SolverService extends Service {
                         appendLog(logF, "Could not read found.txt: " + safeMessage(e));
                     }
                     resultVerified = false;
-                    if (processVerified) {
-                        status = "ENGINE REPORTED SUCCESS — independent verification unavailable";
-                    } else {
-                        status = "UNVERIFIED RESULT — scan.log പരിശോധിക്കുക";
-                    }
+                    status = SolverResultPolicy.statusForFoundResult(
+                            processVerified, processExitedSuccessfully);
                     running = false;
                     break;
                 }
