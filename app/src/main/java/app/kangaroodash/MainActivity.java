@@ -389,6 +389,7 @@ public class MainActivity extends Activity {
             catalogRawRecordCount = records.length();
             List<String> labels = new ArrayList<>();
             int locallyEligibleRecords = 0;
+            int firstEligiblePosition = -1;
             for (int i = 0; i < records.length(); i++) {
                 JSONObject record = records.optJSONObject(i);
                 if (record == null) continue;
@@ -430,6 +431,9 @@ public class MainActivity extends Activity {
                         record.opt("unsafe_for_wallets"), hasKey, startValid,
                         rangeMetadataValid, searchBits)) {
                     locallyEligibleRecords++;
+                    if (firstEligiblePosition < 0) {
+                        firstEligiblePosition = puzzleEntries.size() - 1;
+                    }
                 }
 
                 StringBuilder availability = new StringBuilder();
@@ -472,6 +476,13 @@ public class MainActivity extends Activity {
                         + catalogRawRecordCount + ", usable records=" + puzzleEntries.size();
             }
             puzzleHint.setText(getString(R.string.catalog_load_summary, loadedCount, eligibleCount));
+            // Show a usable catalog target immediately when one exists. Selection only loads
+            // validated fields; it never starts the native engine.
+            if (!puzzleEntries.isEmpty()) {
+                int initialSelection = firstEligiblePosition >= 0 ? firstEligiblePosition : 0;
+                puzzleSpinner.setSelection(initialSelection);
+                applySelectedPuzzle();
+            }
         } catch (Exception e) {
             catalogDataParsed = false;
             catalogLoadError = e.getClass().getSimpleName();
