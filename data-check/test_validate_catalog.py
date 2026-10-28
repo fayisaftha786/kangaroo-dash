@@ -19,6 +19,7 @@ def valid_catalog():
             "private_key_already_public": False,
             "unsafe_for_wallets": False,
             "source_url": f"https://example.org/catalog/{pid}",
+            "source_label": "Synthetic per-record source",
             "dataset_source_url": "https://example.org/secondary-catalog",
             "dataset_source_snapshot": "2026-10-02",
             "chain_tx_url": None,
@@ -87,6 +88,13 @@ class BundledCatalogValidatorTests(unittest.TestCase):
         errors, warnings = validate(records)
         self.assertEqual(errors, [])
         self.assertTrue(any("#1: source_url missing or not HTTPS" in w for w in warnings))
+
+    def test_record_source_without_evidence_label_is_warned(self):
+        records = valid_catalog()
+        records[0]["source_label"] = "   "
+        errors, warnings = validate(records)
+        self.assertEqual(errors, [])
+        self.assertTrue(any("#1: source_url has no evidence label" in w for w in warnings))
 
     def test_dataset_reference_does_not_replace_missing_record_source(self):
         records = valid_catalog()
