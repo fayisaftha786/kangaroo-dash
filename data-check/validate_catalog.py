@@ -107,8 +107,32 @@ def validate(data):
 
         source_url = record.get("source_url")
         parsed_source = urlparse(source_url) if isinstance(source_url, str) else None
-        if not parsed_source or parsed_source.scheme != "https" or not parsed_source.netloc:
-            warnings.append(f"#{pid}: source_url missing or not HTTPS; provenance unverified")
+        if not parsed_source or parsed_source.scheme.lower() != "https" or not parsed_source.netloc:
+            warnings.append(f"#{pid}: source_url missing or not HTTPS; record-level provenance unverified")
+
+        dataset_url = record.get("dataset_source_url")
+        parsed_dataset = urlparse(dataset_url) if isinstance(dataset_url, str) else None
+        if not parsed_dataset or parsed_dataset.scheme.lower() != "https" or not parsed_dataset.netloc:
+            warnings.append(f"#{pid}: dataset_source_url missing or not HTTPS; secondary cross-reference unavailable")
+        snapshot = record.get("dataset_source_snapshot")
+        if not isinstance(snapshot, str) or not re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", snapshot):
+            errors.append(f"#{pid}: dataset_source_snapshot must be an ISO date YYYY-MM-DD")
+
+        txid = record.get("solve_txid")
+        tx_url = record.get("chain_tx_url")
+        tx_mirror = record.get("chain_tx_url_secondary")
+        if txid is not None:
+            if not isinstance(txid, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", txid):
+                errors.append(f"#{pid}: solve_txid must be 64 hexadecimal characters or null")
+            else:
+                expected_tx_url = f"https://mempool.space/tx/{txid}"
+                expected_mirror_url = f"https://blockstream.info/tx/{txid}"
+                if tx_url != expected_tx_url:
+                    errors.append(f"#{pid}: chain_tx_url must reference its recorded mempool.space transaction")
+                if tx_mirror != expected_mirror_url:
+                    errors.append(f"#{pid}: chain_tx_url_secondary must reference its recorded blockstream.info transaction")
+        elif tx_url is not None or tx_mirror is not None:
+            errors.append(f"#{pid}: transaction explorer URLs require a solve_txid")
 
     duplicates = sorted({pid for pid in ids if ids.count(pid) > 1})
     if duplicates:
