@@ -18,6 +18,7 @@ def valid_catalog():
             "hash160": None,
             "private_key_already_public": False,
             "unsafe_for_wallets": False,
+            "native_search_approved": False,
             "source_url": f"https://example.org/catalog/{pid}",
             "source_scope": "record",
             "source_label": "Synthetic per-record source",
@@ -134,6 +135,41 @@ class BundledCatalogValidatorTests(unittest.TestCase):
         errors, _ = validate(records)
         self.assertTrue(any("#1: chain_tx_url must reference its recorded mempool.space transaction" in e
                             for e in errors))
+
+
+    def test_real_catalog_public_key_reveals_have_record_level_on_chain_sources(self):
+        from pathlib import Path
+        import json
+
+        catalog_path = Path(__file__).with_name("puzzles.json")
+        bundled = json.loads(catalog_path.read_text(encoding="utf-8"))
+        txid = "17e4e323cfbc68d7f0071cad09364e8193eedf8fefbcbd8a21b4b65717a4b3d3"
+        for pid in (140, 145, 150, 155, 160):
+            record = next(row for row in bundled if row.get("id") == pid)
+            self.assertEqual(record.get("source_url"), f"https://mempool.space/tx/{txid}")
+            self.assertEqual(record.get("source_scope"), "record")
+            self.assertIn(f"puzzle #{pid}", record.get("source_label", "").lower())
+            self.assertEqual(record.get("status"), "unsolved")
+            self.assertTrue(record.get("public_key"))
+            self.assertIs(record.get("native_search_approved"), False)
+
+    def test_catalog_is_inspection_only_and_rejects_native_search_approval(self):
+        records = valid_catalog()
+        errors, _ = validate(records)
+        self.assertEqual(errors, [])
+        records[139]["native_search_approved"] = True
+        errors, _ = validate(records)
+        self.assertTrue(any(
+            "#140: this catalog build is inspection-only; native_search_approved"
+            in error for error in errors
+        ))
+        records = valid_catalog()
+        records[0].pop("native_search_approved")
+        errors, _ = validate(records)
+        self.assertTrue(any(
+            "#1: this catalog build is inspection-only; native_search_approved"
+            in error for error in errors
+        ))
 
     def test_non_array_root_is_rejected(self):
         errors, warnings = validate({"id": 1})

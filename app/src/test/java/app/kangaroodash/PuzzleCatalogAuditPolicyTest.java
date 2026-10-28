@@ -36,66 +36,77 @@ public class PuzzleCatalogAuditPolicyTest {
     @Test public void localEligibilityRequiresEveryRuntimeGateAndSourceReference() {
         assertTrue(PuzzleCatalogAuditPolicy.isLocallyRunnable(
                 "unsolved", false, false, true, true, true, 3,
-                "https://example.org/puzzles/1", "Test source", "record"));
+                "https://example.org/puzzles/1", "Test source", "record", true));
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
                 "solved", true, true, true, true, true, 3,
-                "https://example.org/puzzles/1", "Test source", "record"));
+                "https://example.org/puzzles/1", "Test source", "record", true));
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
                 "unsolved", false, false, false, true, true, 3,
-                "https://example.org/puzzles/1", "Test source", "record"));
+                "https://example.org/puzzles/1", "Test source", "record", true));
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
                 "unsolved", false, false, true, false, true, 3,
-                "https://example.org/puzzles/1", "Test source", "record"));
+                "https://example.org/puzzles/1", "Test source", "record", true));
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
                 "unsolved", false, false, true, true, false, 3,
-                "https://example.org/puzzles/1", "Test source", "record"));
+                "https://example.org/puzzles/1", "Test source", "record", true));
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
                 "unsolved", false, false, true, true, true, 0,
-                "https://example.org/puzzles/1", "Test source", "record"));
+                "https://example.org/puzzles/1", "Test source", "record", true));
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
-                "unsolved", false, false, true, true, true, 3, null, "Test source", "record"));
+                "unsolved", false, false, true, true, true, 3, null, "Test source", "record", true));
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
                 "unsolved", false, false, true, true, true, 3,
-                "https://example.org/puzzles/1", "", "record"));
+                "https://example.org/puzzles/1", "", "record", true));
     }
 
     @Test public void missingPerRecordSourceBlocksNativeStartButValidMetadataCanBeInspected() {
         assertTrue(PuzzleCatalogAuditPolicy.hasValidSearchMetadata(true, true, true, 139));
         assertFalse(PuzzleCatalogAuditPolicy.isExecutionEligible(
                 "unsolved", false, false, true, true, true, 139,
-                null, null, "missing"));
+                null, null, "missing", true));
     }
 
     @Test public void runtimeEligibilityStillBlocksUnsafeOrInvalidEntries() {
         assertFalse(PuzzleCatalogAuditPolicy.isExecutionEligible(
                 "solved", true, true, true, true, true, 139,
-                "https://example.org/puzzles/139", "Test source", "record"));
+                "https://example.org/puzzles/139", "Test source", "record", true));
         assertFalse(PuzzleCatalogAuditPolicy.isExecutionEligible(
                 "unsolved", false, false, false, true, true, 139,
-                "https://example.org/puzzles/139", "Test source", "record"));
+                "https://example.org/puzzles/139", "Test source", "record", true));
         assertFalse(PuzzleCatalogAuditPolicy.isExecutionEligible(
                 "unsolved", false, false, true, false, true, 139,
-                "https://example.org/puzzles/139", "Test source", "record"));
+                "https://example.org/puzzles/139", "Test source", "record", true));
         assertFalse(PuzzleCatalogAuditPolicy.isExecutionEligible(
                 "unsolved", false, false, true, true, false, 139,
-                "https://example.org/puzzles/139", "Test source", "record"));
+                "https://example.org/puzzles/139", "Test source", "record", true));
         assertFalse(PuzzleCatalogAuditPolicy.isExecutionEligible(
                 "unsolved", false, false, true, true, true, 0,
-                "https://example.org/puzzles/139", "Test source", "record"));
+                "https://example.org/puzzles/139", "Test source", "record", true));
     }
 
     @Test public void datasetWideReferenceCannotMakeEntryLocallyRunnable() {
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
                 "unsolved", false, false, true, true, true, 3,
-                "https://lotterypuzzle.org/puzzles/", "Secondary dataset index", "dataset"));
+                "https://lotterypuzzle.org/puzzles/", "Secondary dataset index", "dataset", true));
+    }
+
+    @Test public void nativeSearchApprovalMustBeExplicitAndTrue() {
+        assertTrue(PuzzleCatalogAuditPolicy.hasNativeSearchApproval(Boolean.TRUE));
+        assertFalse(PuzzleCatalogAuditPolicy.hasNativeSearchApproval(Boolean.FALSE));
+        assertFalse(PuzzleCatalogAuditPolicy.hasNativeSearchApproval(null));
+        assertFalse(PuzzleCatalogAuditPolicy.hasNativeSearchApproval("true"));
+        assertFalse(PuzzleCatalogAuditPolicy.isExecutionEligible(
+                "unsolved", false, false, true, true, true, 139,
+                "https://example.org/puzzles/140", "On-chain public-key reveal", "record",
+                Boolean.FALSE));
     }
 
     @Test public void missingSafetyMetadataIsNeverLocallyRunnable() {
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
                 "unsolved", null, false, true, true, true, 3,
-                "https://example.org/puzzles/1", "Test source", "record"));
+                "https://example.org/puzzles/1", "Test source", "record", true));
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
                 "unsolved", false, null, true, true, true, 3,
-                "https://example.org/puzzles/1", "Test source", "record"));
+                "https://example.org/puzzles/1", "Test source", "record", true));
     }
 }

@@ -426,6 +426,8 @@ public class MainActivity extends Activity {
                         || PuzzleCatalogAuditPolicy.isHttpsSource(datasetRecordUrl);
                 boolean hasSourceReference = PuzzleCatalogAuditPolicy.hasSourceReference(
                         sourceUrl, sourceLabel, sourceScope);
+                boolean nativeSearchApproved = PuzzleCatalogAuditPolicy.hasNativeSearchApproval(
+                        record.opt("native_search_approved"));
 
                 if (!blockedBySafety && PuzzleCatalogAuditPolicy.hasValidSearchMetadata(
                         hasKey, startValid, rangeMetadataValid, searchBits)
@@ -435,7 +437,8 @@ public class MainActivity extends Activity {
                 if (PuzzleCatalogAuditPolicy.isExecutionEligible(state,
                         record.opt("private_key_already_public"),
                         record.opt("unsafe_for_wallets"), hasKey, startValid,
-                        rangeMetadataValid, searchBits, sourceUrl, sourceLabel, sourceScope)) {
+                        rangeMetadataValid, searchBits, sourceUrl, sourceLabel, sourceScope,
+                        record.opt("native_search_approved"))) {
                     locallyEligibleRecords++;
                     if (firstEligiblePosition < 0) {
                         firstEligiblePosition = puzzleEntries.size() - 1;
@@ -448,6 +451,9 @@ public class MainActivity extends Activity {
                     availability.append(hasDatasetReference
                             ? " • source warning: secondary catalog reference only"
                             : " • source warning: per-record URL missing");
+                }
+                if (!nativeSearchApproved) {
+                    availability.append(" • inspection only: native START not approved");
                 }
                 if (!hasKey) availability.append(" • no usable public key");
                 if (!startValid || !rangeMetadataValid) {
@@ -521,6 +527,8 @@ public class MainActivity extends Activity {
         int id = record.optInt("id", -1);
         int bits = record.optInt("bits", -1);
         String state = record.optString("status", "unknown");
+        String addressValue = record.optString("address", "").trim();
+        String rewardValue = record.optString("reward_btc", "").trim();
         String key = record.optString("public_key", "");
         String startHex = record.optString("range_start_hex", "");
         String endHex = record.optString("range_end_hex", "");
@@ -538,6 +546,8 @@ public class MainActivity extends Activity {
                 record.optString("source_url", ""),
                 record.optString("source_label", ""),
                 record.optString("source_scope", "missing"));
+        boolean nativeSearchApproved = PuzzleCatalogAuditPolicy.hasNativeSearchApproval(
+                record.opt("native_search_approved"));
 
         String safetyState = getString(blockedBySafety
                 ? R.string.puzzle_preview_safety_blocked
@@ -551,12 +561,24 @@ public class MainActivity extends Activity {
         String sourceState = getString(hasSourceReference
                 ? R.string.puzzle_preview_source_present
                 : R.string.puzzle_preview_source_missing);
+        if (hasSourceReference) {
+            String sourceLabel = record.optString("source_label", "").trim();
+            String sourceUrl = record.optString("source_url", "").trim();
+            if (!sourceLabel.isEmpty()) sourceState = sourceLabel;
+            if (!sourceUrl.isEmpty()) sourceState += " (" + sourceUrl + ")";
+        }
+        String executionApprovalState = getString(nativeSearchApproved
+                ? R.string.puzzle_preview_execution_approved
+                : R.string.puzzle_preview_execution_unapproved);
 
         puzzlePreview.setText(getString(R.string.puzzle_preview_details,
-                id, state, safetyState, keyState,
+                id, state,
+                addressValue.isEmpty() ? "—" : addressValue,
+                rewardValue.isEmpty() ? "—" : rewardValue,
+                safetyState, keyState,
                 startHex.isEmpty() ? "—" : startHex,
                 endHex.isEmpty() ? "—" : endHex,
-                rangeState, sourceState));
+                rangeState, sourceState, executionApprovalState));
     }
 
     private void applySelectedPuzzle() {
@@ -621,6 +643,12 @@ public class MainActivity extends Activity {
                 record.optString("source_scope", "missing"));
         if (!hasSourceReference) {
             puzzleHint.setText(getString(R.string.puzzle_preview_only_source_blocked,
+                    Integer.toString(id)));
+            return;
+        }
+
+        if (!PuzzleCatalogAuditPolicy.hasNativeSearchApproval(record.opt("native_search_approved"))) {
+            puzzleHint.setText(getString(R.string.puzzle_preview_only_execution_unapproved,
                     Integer.toString(id)));
             return;
         }
@@ -948,6 +976,8 @@ public class MainActivity extends Activity {
         int unsupportedRanges = 0;
         int missingSafetyFlags = 0;
         int safetyBlocked = 0;
+        int explicitNativeSearchApprovals = 0;
+        int missingOrDeniedNativeSearchApprovals = 0;
         int httpsSources = 0;
         int missingOrNonHttpsSources = 0;
         int datasetSourceReferences = 0;
@@ -1045,6 +1075,12 @@ public class MainActivity extends Activity {
                 if (PuzzleCatalogPolicy.isBlocked(state, privateKeyFlag, unsafeFlag)) {
                     safetyBlocked++;
                 }
+                Object nativeSearchApproval = record.opt("native_search_approved");
+                if (PuzzleCatalogAuditPolicy.hasNativeSearchApproval(nativeSearchApproval)) {
+                    explicitNativeSearchApprovals++;
+                } else {
+                    missingOrDeniedNativeSearchApprovals++;
+                }
 
                 Object sourceValue = record.opt("source_url");
                 String sourceUrl = sourceValue instanceof String ? (String) sourceValue : null;
@@ -1081,7 +1117,8 @@ public class MainActivity extends Activity {
                 boolean startValid = isValidStartValue(startHex);
                 boolean candidate = PuzzleCatalogAuditPolicy.isExecutionEligible(
                         state, privateKeyFlag, unsafeFlag, keyValid, startValid,
-                        rangeValid, searchBits, sourceUrl, sourceLabel, sourceScope);
+                        rangeValid, searchBits, sourceUrl, sourceLabel, sourceScope,
+                        nativeSearchApproval);
                 if (candidate) {
                     locallyRunnable++;
                     locallyRunnableWithHttpsSource++;
@@ -1114,6 +1151,8 @@ public class MainActivity extends Activity {
                     .append("Metadata-valid but unsupported search width: ").append(unsupportedRanges).append('\n')
                     .append("Missing/malformed safety flag pairs: ").append(missingSafetyFlags).append('\n')
                     .append("Records blocked by current safety gates: ").append(safetyBlocked).append('\n')
+                    .append("Explicit native-search approvals: ").append(explicitNativeSearchApprovals)
+                    .append("; missing/denied: ").append(missingOrDeniedNativeSearchApprovals).append('\n')
                     .append("Per-record HTTPS source URLs present: ").append(httpsSources)
                     .append("; missing/non-HTTPS per-record sources: ").append(missingOrNonHttpsSources).append('\n')
                     .append("Secondary dataset index references (not per-record proof): ")
@@ -1140,7 +1179,7 @@ public class MainActivity extends Activity {
                     .append("Details: ").append(e.getMessage());
         }
 
-        report.append("\n\nLIMITS: Missing per-record source metadata blocks local eligibility; HTTPS URL presence does not prove source authenticity. "
+        report.append("\n\nLIMITS: Missing per-record source metadata or explicit native-search approval blocks local execution; HTTPS URL presence does not prove source authenticity. This catalog build is inspection-only because no record is approved for native search. "
                 + "These checks do not query the live blockchain, "
                 + "prove a target is correctly labelled, confirm native --range semantics, verify DP save/load, "
                 + "or independently validate a result.");

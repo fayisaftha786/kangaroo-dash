@@ -42,26 +42,33 @@ final class PuzzleCatalogAuditPolicy {
                 && PuzzleCatalogPolicy.hasSupportedSearchBits(searchBits);
     }
 
+    /** Native execution is denied unless the record explicitly carries Boolean true. */
+    static boolean hasNativeSearchApproval(Object value) {
+        return value instanceof Boolean && Boolean.TRUE.equals(value);
+    }
+
     /**
-     * Runtime eligibility requires safety flags, valid search metadata, and a complete
-     * record-scoped HTTPS source reference. URL presence alone does not prove authenticity.
+     * Runtime eligibility requires safety flags, valid search metadata, a record-scoped
+     * HTTPS source reference, and explicit native-search approval. Source presence alone
+     * never grants execution permission.
      */
     static boolean isExecutionEligible(String status, Object privateKeyAlreadyPublic,
             Object unsafeForWallets, boolean publicKeyValid, boolean startValid,
             boolean rangeMetadataValid, int searchBits, String sourceUrl, String sourceLabel,
-            String sourceScope) {
+            String sourceScope, Object nativeSearchApproval) {
         return !PuzzleCatalogPolicy.isBlocked(status, privateKeyAlreadyPublic, unsafeForWallets)
                 && hasValidSearchMetadata(publicKeyValid, startValid, rangeMetadataValid, searchBits)
-                && hasSourceReference(sourceUrl, sourceLabel, sourceScope);
+                && hasSourceReference(sourceUrl, sourceLabel, sourceScope)
+                && hasNativeSearchApproval(nativeSearchApproval);
     }
 
     /** Compatibility name used by the catalog audit for a locally eligible record. */
     static boolean isLocallyRunnable(String status, Object privateKeyAlreadyPublic,
             Object unsafeForWallets, boolean publicKeyValid, boolean startValid,
             boolean rangeMetadataValid, int searchBits, String sourceUrl, String sourceLabel,
-            String sourceScope) {
+            String sourceScope, Object nativeSearchApproval) {
         return isExecutionEligible(status, privateKeyAlreadyPublic, unsafeForWallets,
                 publicKeyValid, startValid, rangeMetadataValid, searchBits,
-                sourceUrl, sourceLabel, sourceScope);
+                sourceUrl, sourceLabel, sourceScope, nativeSearchApproval);
     }
 }

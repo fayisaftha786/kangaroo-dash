@@ -1,6 +1,6 @@
 [![Android CI](https://github.com/fayisaftha786/kangaroo-dash/actions/workflows/build.yml/badge.svg)](https://github.com/fayisaftha786/kangaroo-dash/actions/workflows/build.yml)
 
-**Current build target:** Kangaroo v2.3 (`versionCode 5`) · Android API 36. Local diagnostics now report JSON parse/load state, usable catalog-entry count, execution-eligible count, and Activity-level START rejection reason. Missing per-record source metadata remains a fail-closed START gate; the UI can show valid metadata for inspection without authorizing native search. The native engine's internal search semantics and DP persistence are not proven by CI.
+**Current build target:** Kangaroo v2.4 (`versionCode 6`) · Android API 36. The bundled 160-record catalog auto-loads for inspection; valid keys/ranges are previewed on selection. Every record is explicitly marked `native_search_approved: false`, so a source URL cannot silently enable native search. The 72 records without a public key remain address-only; missing keys or unverified sources are never invented. Current CI checks structural/range arithmetic and local key/address consistency, but not live balances or native-engine `--range`/DP semantics.
 
 ## Downloading and checking a CI APK
 
