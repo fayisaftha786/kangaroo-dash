@@ -59,6 +59,27 @@ public class PuzzleCatalogAuditPolicyTest {
                 "https://example.org/puzzles/1", "", "record"));
     }
 
+    @Test public void missingPerRecordSourceIsWarningNotRuntimeGate() {
+        assertTrue(PuzzleCatalogAuditPolicy.isExecutionEligible(
+                "unsolved", false, false, true, true, true, 139));
+        assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
+                "unsolved", false, false, true, true, true, 139,
+                null, null, "missing"));
+    }
+
+    @Test public void runtimeEligibilityStillBlocksUnsafeOrInvalidEntries() {
+        assertFalse(PuzzleCatalogAuditPolicy.isExecutionEligible(
+                "solved", true, true, true, true, true, 139));
+        assertFalse(PuzzleCatalogAuditPolicy.isExecutionEligible(
+                "unsolved", false, false, false, true, true, 139));
+        assertFalse(PuzzleCatalogAuditPolicy.isExecutionEligible(
+                "unsolved", false, false, true, false, true, 139));
+        assertFalse(PuzzleCatalogAuditPolicy.isExecutionEligible(
+                "unsolved", false, false, true, true, false, 139));
+        assertFalse(PuzzleCatalogAuditPolicy.isExecutionEligible(
+                "unsolved", false, false, true, true, true, 0));
+    }
+
     @Test public void datasetWideReferenceCannotMakeEntryLocallyRunnable() {
         assertFalse(PuzzleCatalogAuditPolicy.isLocallyRunnable(
                 "unsolved", false, false, true, true, true, 3,
