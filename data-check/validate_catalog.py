@@ -129,6 +129,11 @@ def validate(data):
         parsed_dataset = urlparse(dataset_url) if isinstance(dataset_url, str) else None
         if not parsed_dataset or parsed_dataset.scheme.lower() != "https" or not parsed_dataset.netloc:
             warnings.append(f"#{pid}: dataset_source_url missing or not HTTPS; secondary cross-reference unavailable")
+
+        dataset_record_url = record.get("dataset_record_url")
+        expected_dataset_record_url = f"https://lotterypuzzle.org/puzzles/{pid}/"
+        if dataset_record_url != expected_dataset_record_url:
+            warnings.append(f"#{pid}: dataset_record_url missing or does not match this record's secondary atlas page")
         snapshot = record.get("dataset_source_snapshot")
         if not isinstance(snapshot, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", snapshot):
             errors.append(f"#{pid}: dataset_source_snapshot must be an ISO date YYYY-MM-DD")
