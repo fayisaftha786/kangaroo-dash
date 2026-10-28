@@ -1,13 +1,13 @@
 plugins { id 'com.android.application' }
 android {
     namespace 'app.kangaroodash'
-    compileSdk 34
+    compileSdk 36
     defaultConfig {
         applicationId 'app.kangaroodash'
         minSdk 26
-        targetSdk 34
-        versionCode 2
-        versionName '2.0'
+        targetSdk 36
+        versionCode 3
+        versionName '2.1'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
