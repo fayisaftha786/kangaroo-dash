@@ -553,7 +553,8 @@ public class MainActivity extends Activity {
     }
 
     private void applySelectedPuzzle() {
-        // Block first; only the complete validated entry below can authorize START.
+        // Block first. A validated but solved/unsafe entry may be displayed for inspection,
+        // but it must never unlock START.
         selectedPuzzleBlocked = true;
         loadedPuzzlePublicKey = loadedPuzzleStart = loadedPuzzleRange = null;
         updateSelectedPuzzlePreview();
@@ -571,17 +572,11 @@ public class MainActivity extends Activity {
         int id = record.optInt("id", -1);
         String state = record.optString("status", "unknown");
 
-        // Do not leave values from a previous selection visible when this entry is blocked.
+        // Clear values from the previously selected record before validating this selection.
         pub.setText("");
         start.setText("");
         range.setText("");
 
-        if (PuzzleCatalogPolicy.isBlocked(state,
-                record.opt("private_key_already_public"),
-                record.opt("unsafe_for_wallets"))) {
-            puzzleHint.setText(getString(R.string.puzzle_blocked_safety, Integer.toString(id)));
-            return;
-        }
         if (!isPublicKeyHex(key)) {
             puzzleHint.setText(getString(R.string.puzzle_missing_public_key, Integer.toString(id)));
             return;
@@ -599,12 +594,20 @@ public class MainActivity extends Activity {
             return;
         }
 
-        // A missing record-specific source is an audit/provenance warning, not a solver-input
-        // error. The bundled target must still pass safety, secp256k1, and exact range checks.
-        // START remains blocked for solved/unsafe records and any invalid or unsupported inputs.
+        // Valid metadata is shown in fields for inspection even when the entry is solved/unsafe.
+        // selectedPuzzleBlocked stays true until the entry also passes the safety gate below.
         pub.setText(key);
         start.setText(startHex);
         range.setText(getString(R.string.numeric_field_value, rangeBits));
+
+        if (PuzzleCatalogPolicy.isBlocked(state,
+                record.opt("private_key_already_public"),
+                record.opt("unsafe_for_wallets"))) {
+            puzzleHint.setText(getString(R.string.puzzle_preview_only_safety_blocked,
+                    Integer.toString(id), state));
+            return;
+        }
+
         loadedPuzzlePublicKey = key;
         loadedPuzzleStart = startHex;
         loadedPuzzleRange = Integer.toString(rangeBits);
