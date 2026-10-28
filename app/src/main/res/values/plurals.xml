@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="catalog_records_loaded">
+        <item quantity="one">%1$d catalog record loaded</item>
+        <item quantity="other">%1$d catalog records loaded</item>
+    </plurals>
+    <plurals name="catalog_records_eligible">
+        <item quantity="one">%1$d currently meets the local selection gates</item>
+        <item quantity="other">%1$d currently meet the local selection gates</item>
+    </plurals>
+</resources>

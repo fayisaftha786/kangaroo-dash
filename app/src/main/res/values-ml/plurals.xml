@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="catalog_records_loaded">
+        <item quantity="one">%1$d കാറ്റലോഗ് റെക്കോർഡ് ലോഡ് ചെയ്തു</item>
+        <item quantity="other">%1$d കാറ്റലോഗ് റെക്കോർഡുകൾ ലോഡ് ചെയ്തു</item>
+    </plurals>
+    <plurals name="catalog_records_eligible">
+        <item quantity="one">%1$d റെക്കോർഡ് നിലവിലെ തിരഞ്ഞെടുപ്പ് പരിശോധനകൾ പൂർത്തിയാക്കി</item>
+        <item quantity="other">%1$d റെക്കോർഡുകൾ നിലവിലെ തിരഞ്ഞെടുപ്പ് പരിശോധനകൾ പൂർത്തിയാക്കി</item>
+    </plurals>
+</resources>

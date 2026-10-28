@@ -232,7 +232,7 @@ public class MainActivity extends Activity {
         puzzleSpinner = new Spinner(this);
         puzzlePicker.addView(puzzleSpinner, lp(-1, 48));
         Button loadPuzzleButton = new Button(this);
-        loadPuzzleButton.setText("LOAD SELECTED PUZZLE");
+        loadPuzzleButton.setText(getString(R.string.load_selected_puzzle));
         loadPuzzleButton.setTextColor(TEXT);
         loadPuzzleButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         loadPuzzleButton.setBackground(shape(0xFF25204B, 14));
@@ -247,7 +247,7 @@ public class MainActivity extends Activity {
         actions.setOrientation(LinearLayout.HORIZONTAL);
 
         startButton = new Button(this);
-        startButton.setText("▶  START");
+        startButton.setText(getString(R.string.start_button));
         startButton.setTextColor(0xFF100C2B);
         startButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         startButton.setBackground(shape(ACCENT, 14));
@@ -257,7 +257,7 @@ public class MainActivity extends Activity {
         actions.addView(spacer, lp(12, 1));
 
         stopButton = new Button(this);
-        stopButton.setText("■  STOP");
+        stopButton.setText(getString(R.string.stop_button));
         stopButton.setTextColor(TEXT);
         stopButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         stopButton.setBackground(shape(0xFF34264A, 14));
@@ -268,7 +268,7 @@ public class MainActivity extends Activity {
         root.addView(actions, actionLp);
 
         Button selfTestButton = new Button(this);
-        selfTestButton.setText("RUN SAFE SELF-TEST (NO NATIVE SEARCH)");
+        selfTestButton.setText(getString(R.string.safe_self_test_button));
         selfTestButton.setTextColor(TEXT);
         selfTestButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         selfTestButton.setBackground(shape(0xFF164E63, 14));
@@ -278,7 +278,7 @@ public class MainActivity extends Activity {
         selfTestButton.setOnClickListener(v -> startSafeSelfTest());
 
         Button diagnosticsButton = new Button(this);
-        diagnosticsButton.setText("VIEW / COPY DIAGNOSTICS");
+        diagnosticsButton.setText(getString(R.string.diagnostics_button));
         diagnosticsButton.setTextColor(TEXT);
         diagnosticsButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         diagnosticsButton.setBackground(shape(0xFF1C2942, 14));
@@ -288,7 +288,7 @@ public class MainActivity extends Activity {
         diagnosticsButton.setOnClickListener(v -> showDiagnostics());
 
         Button exportButton = new Button(this);
-        exportButton.setText("EXPORT dp.json / scan.log");
+        exportButton.setText(getString(R.string.export_button));
         exportButton.setTextColor(ACCENT);
         exportButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         exportButton.setBackground(shape(0xFF25204B, 14));
@@ -298,7 +298,7 @@ public class MainActivity extends Activity {
         exportButton.setOnClickListener(v -> chooseExportFile());
 
         Button healthButton = new Button(this);
-        healthButton.setText("RUN APP HEALTH CHECK");
+        healthButton.setText(getString(R.string.health_check_button));
         healthButton.setTextColor(ACCENT);
         healthButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         healthButton.setBackground(shape(0xFF25204B, 14));
@@ -308,7 +308,7 @@ public class MainActivity extends Activity {
         healthButton.setOnClickListener(v -> showHealthCenter());
 
         Button puzzleDataButton = new Button(this);
-        puzzleDataButton.setText("AUDIT FULL PUZZLE CATALOG");
+        puzzleDataButton.setText(getString(R.string.audit_catalog_button));
         puzzleDataButton.setTextColor(TEXT);
         puzzleDataButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         puzzleDataButton.setBackground(shape(0xFF1C2942, 14));
@@ -335,7 +335,7 @@ public class MainActivity extends Activity {
         stopButton.setOnClickListener(v -> {
             // Stopping an existing service does not attempt a new background service start.
             stopService(new Intent(this, SolverService.class));
-            statusText.setText("Stopping…");
+            statusText.setText(getString(R.string.stopping));
         });
 
         setContentView(scroll);
@@ -435,17 +435,18 @@ public class MainActivity extends Activity {
                 }
 
                 @Override public void onNothingSelected(AdapterView<?> parent) {
-                    puzzleHint.setText("Choose a catalog record.");
+                    puzzleHint.setText(getString(R.string.choose_catalog_record));
                 }
             });
-            puzzleHint.setText(puzzleEntries.size() + " catalog records loaded; "
-                    + locallyEligibleRecords + " currently meet the local selection gates. "
-                    + "Missing HTTPS source references are blocked. Selecting a record never starts the engine; "
-                    + "START is a separate action. Native search correctness is not implied.");
+            String loadedCount = getResources().getQuantityString(
+                    R.plurals.catalog_records_loaded, puzzleEntries.size(), puzzleEntries.size());
+            String eligibleCount = getResources().getQuantityString(
+                    R.plurals.catalog_records_eligible, locallyEligibleRecords, locallyEligibleRecords);
+            puzzleHint.setText(getString(R.string.catalog_load_summary, loadedCount, eligibleCount));
         } catch (Exception e) {
             puzzleEntries.clear();
-            puzzleHint.setText("Catalog unavailable: " + e.getClass().getSimpleName());
-            statusText.setText("Puzzle catalog could not be loaded");
+            puzzleHint.setText(getString(R.string.catalog_unavailable, e.getClass().getSimpleName()));
+            statusText.setText(getString(R.string.catalog_load_failed));
         }
     }
 
@@ -455,7 +456,7 @@ public class MainActivity extends Activity {
         loadedPuzzlePublicKey = loadedPuzzleStart = loadedPuzzleRange = null;
         int position = puzzleSpinner == null ? -1 : puzzleSpinner.getSelectedItemPosition();
         if (position < 0 || position >= puzzleEntries.size()) {
-            puzzleHint.setText("Choose a valid catalog record first.");
+            puzzleHint.setText(getString(R.string.choose_valid_catalog_record));
             return;
         }
         JSONObject record = puzzleEntries.get(position);
@@ -476,55 +477,54 @@ public class MainActivity extends Activity {
         if (PuzzleCatalogPolicy.isBlocked(state,
                 record.opt("private_key_already_public"),
                 record.opt("unsafe_for_wallets"))) {
-            puzzleHint.setText("Puzzle #" + id + " is solved or marked unsafe; START is blocked for this record.");
+            puzzleHint.setText(getString(R.string.puzzle_blocked_safety, Integer.toString(id)));
             return;
         }
         if (!PuzzleCatalogAuditPolicy.hasSourceReference(
                 record.optString("source_url", ""),
                 record.optString("source_label", ""))) {
-            puzzleHint.setText("Puzzle #" + id
-                    + " has no HTTPS source reference and label; catalog selection is blocked.");
+            puzzleHint.setText(getString(R.string.puzzle_missing_source_reference, Integer.toString(id)));
             return;
         }
         if (!isPublicKeyHex(key)) {
-            puzzleHint.setText("Puzzle #" + id + " has no usable public key; nothing was changed.");
+            puzzleHint.setText(getString(R.string.puzzle_missing_public_key, Integer.toString(id)));
             return;
         }
         if (!isValidStartValue(startHex)) {
-            puzzleHint.setText("Puzzle #" + id + " has an invalid start value; nothing was changed.");
+            puzzleHint.setText(getString(R.string.puzzle_invalid_start, Integer.toString(id)));
             return;
         }
         if (!PuzzleCatalogPolicy.matchesRangeMetadata(id, startHex, endHex, rangeSize, rangeBits)) {
-            puzzleHint.setText("Puzzle #" + id + " has inconsistent start/end/size metadata; START is blocked.");
+            puzzleHint.setText(getString(R.string.puzzle_invalid_range_metadata, Integer.toString(id)));
             return;
         }
         if (!PuzzleCatalogPolicy.hasSupportedSearchBits(rangeBits)) {
-            puzzleHint.setText("Puzzle #" + id + " has no supported positive search range; nothing was changed.");
+            puzzleHint.setText(getString(R.string.puzzle_unsupported_range, Integer.toString(id)));
             return;
         }
 
         pub.setText(key);
         start.setText(startHex);
-        range.setText(Integer.toString(rangeBits));
+        range.setText(getString(R.string.numeric_field_value, rangeBits));
         loadedPuzzlePublicKey = key;
         loadedPuzzleStart = startHex;
         loadedPuzzleRange = Integer.toString(rangeBits);
         selectedPuzzleBlocked = false;
-        puzzleHint.setText("Loaded Puzzle #" + id + " (" + state + "). This entry passed local checks only; source and native-engine behavior are not independently verified.");
+        puzzleHint.setText(getString(R.string.puzzle_loaded_summary, id, state));
     }
 
     private void startSafeSelfTest() {
         if (SolverService.isBusy()) {
-            statusText.setText("Self-test unavailable: stop the current session first.");
+            statusText.setText(getString(R.string.self_test_unavailable));
             return;
         }
         Intent testIntent = new Intent(this, SolverService.class);
         testIntent.putExtra("diagnostics_test", true);
         try {
             startForegroundService(testIntent);
-            statusText.setText("SAFE SELF-TEST starting — simulated only; native engine will not launch.");
+            statusText.setText(getString(R.string.self_test_starting));
         } catch (Exception e) {
-            statusText.setText("Could not start safe self-test: " + e.getMessage());
+            statusText.setText(getString(R.string.self_test_start_failed, e.getMessage()));
         }
     }
 
@@ -532,13 +532,13 @@ public class MainActivity extends Activity {
         if (selectedPuzzleBlocked || !PuzzleCatalogPolicy.matchesLoadedValues(
                 loadedPuzzlePublicKey, loadedPuzzleStart, loadedPuzzleRange,
                 pub.getText().toString(), start.getText().toString(), range.getText().toString())) {
-            statusText.setText("START blocked: reselect an eligible catalog entry. Changing its key/start/range breaks the catalog match.");
+            statusText.setText(getString(R.string.start_blocked_reselect));
             return;
         }
         if (SolverService.isBusy()) {
             statusText.setText(SolverService.running
-                    ? "Engine is already running"
-                    : "Previous session is still shutting down; try again shortly");
+                    ? getString(R.string.engine_already_running)
+                    : getString(R.string.previous_session_stopping));
             return;
         }
         String pubValue = pub.getText().toString().trim();
@@ -549,15 +549,15 @@ public class MainActivity extends Activity {
 
         if (pubValue.isEmpty() || startValue.isEmpty() || rangeValue.isEmpty()
                 || dpValue.isEmpty() || kangarooValue.isEmpty()) {
-            statusText.setText("Please fill in every field");
+            statusText.setText(getString(R.string.input_all_fields_required));
             return;
         }
         if (!isPublicKeyHex(pubValue)) {
-            statusText.setText("Invalid secp256k1 public key: check encoding and curve point");
+            statusText.setText(getString(R.string.invalid_public_key));
             return;
         }
         if (!isValidStartValue(startValue)) {
-            statusText.setText("Invalid start value: use 1–64 hexadecimal digits (up to 256 bits)");
+            statusText.setText(getString(R.string.invalid_start_value));
             return;
         }
         try {
@@ -565,19 +565,19 @@ public class MainActivity extends Activity {
             int dpBits = Integer.parseInt(dpValue);
             int count = Integer.parseInt(kangarooValue);
             if (rangeBits < 1 || rangeBits > 256) {
-                statusText.setText("Range bits must be between 1 and 256");
+                statusText.setText(getString(R.string.invalid_range_bits));
                 return;
             }
             if (dpBits < 1 || dpBits > 256) {
-                statusText.setText("DP bits must be between 1 and 256");
+                statusText.setText(getString(R.string.invalid_dp_bits));
                 return;
             }
             if (count < 1 || count > 4096) {
-                statusText.setText("Kangaroos must be between 1 and 4096");
+                statusText.setText(getString(R.string.invalid_kangaroo_count));
                 return;
             }
         } catch (NumberFormatException e) {
-            statusText.setText("Range, DP bits and kangaroos must be whole numbers");
+            statusText.setText(getString(R.string.invalid_numeric_fields));
             return;
         }
 
@@ -590,9 +590,9 @@ public class MainActivity extends Activity {
 
         try {
             startForegroundService(i);
-            statusText.setText("Starting engine…");
+            statusText.setText(getString(R.string.starting_engine));
         } catch (Exception e) {
-            statusText.setText("Could not start: " + e.getMessage());
+            statusText.setText(getString(R.string.engine_start_failed, e.getMessage()));
         }
     }
 
@@ -1029,7 +1029,7 @@ public class MainActivity extends Activity {
         boolean busy = SolverService.isBusy();
         if (startButton != null) startButton.setEnabled(!busy);
         if (stopButton != null) stopButton.setEnabled(busy);
-        liveBadge.setText(active ? "● RUNNING" : busy ? "● STOPPING" : "● STOPPED");
+        liveBadge.setText(getString(active ? R.string.badge_running : busy ? R.string.badge_stopping : R.string.badge_stopped));
         liveBadge.setTextColor(active ? ACCENT : MUTED);
         liveBadge.setBackground(shape(active ? 0xFF25204B : 0xFF1C2942, 30));
         opsText.setText(SolverService.ops);
@@ -1038,26 +1038,26 @@ public class MainActivity extends Activity {
         File dpFile = new File(getFilesDir(), "dp.json");
         long bytes = dpFile.exists() ? dpFile.length() : 0;
         String size = bytes < 1024
-            ? bytes + " B"
-            : String.format(java.util.Locale.US, "%.1f KB", bytes / 1024.0);
-        String dpState = !dpFile.exists() ? "missing"
-            : bytes == 0 ? "present but empty" : "present; native save/load unverified";
+            ? getString(R.string.size_bytes, bytes)
+            : getString(R.string.size_kilobytes, bytes / 1024.0);
+        String dpState = !dpFile.exists() ? getString(R.string.dp_state_missing)
+            : bytes == 0 ? getString(R.string.dp_state_empty)
+            : getString(R.string.dp_state_unverified);
         long modifiedMs = dpFile.exists() ? dpFile.lastModified() : 0;
         String modified = modifiedMs > 0
-            ? String.format(java.util.Locale.US, "%.0f min ago",
+            ? getString(R.string.modified_minutes_ago,
                 Math.max(0, (System.currentTimeMillis() - modifiedMs) / 60000.0))
-            : "unknown";
+            : getString(R.string.value_unknown);
 
-        storageText.setText("DP file: " + dpState + " • " + size + " • modified " + modified);
-        restartText.setText("Restarts: " + SolverService.restarts);
+        storageText.setText(getString(R.string.dp_file_details, dpState, size, modified));
+        restartText.setText(getString(R.string.restart_count, SolverService.restarts));
         long elapsed = SolverService.elapsedMs;
         if (SolverService.running && SolverService.sessionStartMs > 0) {
             elapsed = android.os.SystemClock.elapsedRealtime()
                     - SolverService.sessionStartMs;
         }
         long seconds = Math.max(0, elapsed / 1000);
-        elapsedText.setText(String.format(java.util.Locale.US,
-                "Elapsed time: %02d:%02d:%02d",
+        elapsedText.setText(getString(R.string.elapsed_time_format,
                 seconds / 3600, (seconds % 3600) / 60, seconds % 60));
         long telemetryAge = SolverService.lastTelemetryAtMs > 0
                 ? android.os.SystemClock.elapsedRealtime() - SolverService.lastTelemetryAtMs
@@ -1068,15 +1068,15 @@ public class MainActivity extends Activity {
                         SolverService.lastTelemetryAtMs,
                         SolverPerformancePolicy.NO_PROGRESS_TIMEOUT_MS)
                 ? SolverService.speed : "—";
-        speedText.setText("Speed: " + liveSpeed);
+        speedText.setText(getString(R.string.speed_label, liveSpeed));
 
-        tempText.setText("Battery temperature: "
-                + AppHealthCheck.formatTemperature(SolverService.temp));
+        tempText.setText(getString(R.string.temperature_label,
+                AppHealthCheck.formatTemperature(SolverService.temp)));
 
         if (SolverService.found == null || SolverService.found.isEmpty()) {
             resultText.setText("");
         } else {
-            resultText.setText("RESULT\n" + SolverService.found);
+            resultText.setText(getString(R.string.result_header, SolverService.found));
         }
     }
 
