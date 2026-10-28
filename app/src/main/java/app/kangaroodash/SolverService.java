@@ -117,6 +117,7 @@ public class SolverService extends Service {
 
         final String[] a = { in.getStringExtra("pub"), in.getStringExtra("start"),
                 in.getStringExtra("range"), in.getStringExtra("dp"), in.getStringExtra("k") };
+        final boolean diagnosticsTest = in.getBooleanExtra("diagnostics_test", false);
         running = true;
         workerBusy = true;
         restarts = 0;
@@ -128,7 +129,7 @@ public class SolverService extends Service {
         speed = "—";
         ops = "-";
         dps = "-";
-        worker = new Thread(() -> loop(a), "kangaroo-engine-worker");
+        worker = new Thread(() -> loop(a, diagnosticsTest), "kangaroo-engine-worker");
         activeWorker = worker;
         try {
             worker.start();
@@ -187,6 +188,10 @@ public class SolverService extends Service {
     }
 
     void loop(String[] a) {
+        loop(a, false);
+    }
+
+    void loop(String[] a, boolean diagnosticsTest) {
         File dir = getFilesDir();
         File foundF = new File(dir, "found.txt");
         File logF = new File(dir, "scan.log");
@@ -195,6 +200,10 @@ public class SolverService extends Service {
         long nextTemperatureCheckAt = 0;
 
         try {
+            if (diagnosticsTest) {
+                runSafeSelfTest(logF);
+                return;
+            }
             File engine = new File(bin);
             if (!engine.isFile() || !engine.canExecute()) {
                 status = "Native engine missing or not executable: " + engine.getName();
@@ -482,6 +491,47 @@ public class SolverService extends Service {
         }
     }
 
+
+    /**
+     * Short, bounded service/UI lifecycle exercise. It never launches libkangaroo.so,
+     * never changes dp.json/found.txt, and its telemetry is explicitly synthetic.
+     * The outer loop() finally block still owns the normal service cleanup.
+     */
+    private void runSafeSelfTest(File logFile) {
+        final int totalTicks = 8;
+        appendLog(logFile, "--- SAFE SELF-TEST STARTED: simulated only; native engine not launched ---");
+        status = "SAFE SELF-TEST (SIMULATED ONLY) — no puzzle search is running";
+        speed = "SIMULATED";
+        found = "";
+        resultVerified = false;
+
+        for (int tick = 1; tick <= totalTicks
+                && running && !Thread.currentThread().isInterrupted(); tick++) {
+            ops = "SIM " + (tick * 10) + "M";
+            dps = "SIM " + tick;
+            lastTelemetryAtMs = SystemClock.elapsedRealtime();
+            elapsedMs = Math.max(0, lastTelemetryAtMs - sessionStartMs);
+            appendLog(logFile, "SAFE SELF-TEST simulated progress " + tick + "/" + totalTicks);
+            try {
+                Thread.sleep(1000L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+
+        if (running && !Thread.currentThread().isInterrupted()) {
+            status = "SAFE SELF-TEST COMPLETE — simulated only; native engine not launched";
+            appendLog(logFile, status);
+        } else {
+            status = "SAFE SELF-TEST STOPPED — simulated only; native engine not launched";
+            appendLog(logFile, status);
+        }
+        // Do not write or delete found.txt/dp.json, and never imply that a result was found.
+        found = "";
+        resultVerified = false;
+        running = false;
+    }
 
     private static String fileState(File file) {
         if (!file.exists()) return "missing";
