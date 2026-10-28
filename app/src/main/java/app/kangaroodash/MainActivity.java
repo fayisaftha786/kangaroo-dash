@@ -510,8 +510,7 @@ public class MainActivity extends Activity {
         Intent testIntent = new Intent(this, SolverService.class);
         testIntent.putExtra("diagnostics_test", true);
         try {
-            if (Build.VERSION.SDK_INT >= 26) startForegroundService(testIntent);
-            else startService(testIntent);
+            startForegroundService(testIntent);
             statusText.setText("SAFE SELF-TEST starting — simulated only; native engine will not launch.");
         } catch (Exception e) {
             statusText.setText("Could not start safe self-test: " + e.getMessage());
@@ -579,8 +578,7 @@ public class MainActivity extends Activity {
         i.putExtra("k", kangarooValue);
 
         try {
-            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i);
-            else startService(i);
+            startForegroundService(i);
             statusText.setText("Starting engine…");
         } catch (Exception e) {
             statusText.setText("Could not start: " + e.getMessage());
