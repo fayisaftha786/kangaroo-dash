@@ -34,8 +34,11 @@ jobs:
       - name: Verify catalog addresses and public keys
         run: python3 data-check/verify_public_keys.py app/src/main/assets/puzzles.json
 
-      - name: Test catalog validator
+      - name: Test bundled catalog validator
         run: python3 -m unittest discover -s data-check -p 'test_*.py'
+
+      - name: Test sourced puzzle-data schema validator
+        run: python3 -m unittest discover -s data/puzzles -p 'test_*.py'
 
       - name: Setup Java
         uses: actions/setup-java@v6
