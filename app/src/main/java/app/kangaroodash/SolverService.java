@@ -67,12 +67,15 @@ public class SolverService extends Service {
             return START_NOT_STICKY;
         }
         if (in == null) return START_NOT_STICKY;
+        final boolean diagnosticsTest = in.getBooleanExtra("diagnostics_test", false);
 
         try {
             NotificationChannel ch = new NotificationChannel("k", "Kangaroo", NotificationManager.IMPORTANCE_LOW);
             getSystemService(NotificationManager.class).createNotificationChannel(ch);
             Notification n = new Notification.Builder(this, "k")
-                .setContentTitle("Kangaroo ഓടുന്നു")
+                .setContentTitle(diagnosticsTest
+                        ? "Kangaroo safe self-test (simulated)"
+                        : "Kangaroo ഓടുന്നു")
                 .setSmallIcon(android.R.drawable.ic_media_play).build();
             if (Build.VERSION.SDK_INT >= 34) {
                 startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
@@ -117,7 +120,6 @@ public class SolverService extends Service {
 
         final String[] a = { in.getStringExtra("pub"), in.getStringExtra("start"),
                 in.getStringExtra("range"), in.getStringExtra("dp"), in.getStringExtra("k") };
-        final boolean diagnosticsTest = in.getBooleanExtra("diagnostics_test", false);
         running = true;
         workerBusy = true;
         restarts = 0;
