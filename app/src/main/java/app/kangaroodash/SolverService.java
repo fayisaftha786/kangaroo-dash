@@ -228,6 +228,7 @@ public class SolverService extends Service {
                 boolean processVerified = false;
                 int exitCode = Integer.MIN_VALUE;
                 boolean processExitedSuccessfully = false;
+                boolean processCleanupFailed = false;
                 boolean thermalStopRequested = false;
                 Thread outputReader = null;
                 long thermalCheckNow = SystemClock.elapsedRealtime();
@@ -421,6 +422,7 @@ public class SolverService extends Service {
                     java.lang.Process current = proc;
                     proc = null;
                     if (terminateProcess(current)) {
+                        processCleanupFailed = true;
                         markNativeProcessCleanupFailed(current);
                         status = "Native process remains alive after loop cleanup; automatic restart disabled";
                         appendLog(logF, status);
@@ -450,7 +452,7 @@ public class SolverService extends Service {
                     }
                     resultVerified = false;
                     status = SolverResultPolicy.statusForFoundResult(
-                            processVerified, processExitedSuccessfully);
+                            processVerified, processExitedSuccessfully, processCleanupFailed);
                     running = false;
                     break;
                 }
