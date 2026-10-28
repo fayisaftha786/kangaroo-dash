@@ -15,7 +15,7 @@
     <string name="catalog_load_failed">Puzzle catalog could not be loaded</string>
     <string name="choose_valid_catalog_record">Choose a valid catalog record first.</string>
     <string name="puzzle_blocked_safety">Puzzle #%1$s is solved or marked unsafe; START is blocked for this record.</string>
-    <string name="puzzle_missing_source_reference">Puzzle #%1$s has no HTTPS source reference and label; catalog selection is blocked.</string>
+    <string name="puzzle_missing_source_reference">Puzzle #%1$s has no HTTPS per-record source and label; a dataset index alone is not enough, so selection is blocked.</string>
     <string name="puzzle_missing_public_key">Puzzle #%1$s has no usable public key; nothing was changed.</string>
     <string name="puzzle_invalid_start">Puzzle #%1$s has an invalid start value; nothing was changed.</string>
     <string name="puzzle_invalid_range_metadata">Puzzle #%1$s has inconsistent start/end/size metadata; START is blocked.</string>

@@ -19,6 +19,12 @@ def valid_catalog():
             "private_key_already_public": False,
             "unsafe_for_wallets": False,
             "source_url": f"https://example.org/catalog/{pid}",
+            "source_scope": "record",
+            "source_label": "Synthetic per-record source",
+            "dataset_source_url": "https://example.org/secondary-catalog",
+            "dataset_source_snapshot": "2026-10-02",
+            "chain_tx_url": None,
+            "chain_tx_url_secondary": None,
             "range_start_hex": f"{lo:064x}",
             "range_end_hex": f"{hi:064x}",
             "range_size_decimal": str(hi - lo + 1),
@@ -80,9 +86,46 @@ class BundledCatalogValidatorTests(unittest.TestCase):
     def test_missing_source_is_reported_as_provenance_warning(self):
         records = valid_catalog()
         records[0]["source_url"] = None
+        records[0]["source_scope"] = "missing"
         errors, warnings = validate(records)
         self.assertEqual(errors, [])
         self.assertTrue(any("#1: source_url missing or not HTTPS" in w for w in warnings))
+
+    def test_source_url_and_scope_must_agree(self):
+        records = valid_catalog()
+        records[0]["source_scope"] = "missing"
+        errors, _ = validate(records)
+        self.assertTrue(any("#1: source_url is present but source_scope is not 'record'" in e
+                            for e in errors))
+
+    def test_record_source_without_evidence_label_is_warned(self):
+        records = valid_catalog()
+        records[0]["source_label"] = "   "
+        errors, warnings = validate(records)
+        self.assertEqual(errors, [])
+        self.assertTrue(any("#1: source_url has no evidence label" in w for w in warnings))
+
+    def test_dataset_reference_does_not_replace_missing_record_source(self):
+        records = valid_catalog()
+        records[0]["source_url"] = None
+        records[0]["source_scope"] = "missing"
+        errors, warnings = validate(records)
+        self.assertEqual(errors, [])
+        self.assertTrue(any("#1: source_url missing or not HTTPS" in w for w in warnings))
+        self.assertFalse(any("#1: dataset_source_url missing" in w for w in warnings))
+
+    def test_rejects_mismatched_transaction_explorer_link(self):
+        records = valid_catalog()
+        txid = "ab" * 32
+        records[0]["status"] = "solved"
+        records[0]["private_key_already_public"] = True
+        records[0]["unsafe_for_wallets"] = True
+        records[0]["solve_txid"] = txid
+        records[0]["chain_tx_url"] = f"https://example.org/tx/{txid}"
+        records[0]["chain_tx_url_secondary"] = f"https://blockstream.info/tx/{txid}"
+        errors, _ = validate(records)
+        self.assertTrue(any("#1: chain_tx_url must reference its recorded mempool.space transaction" in e
+                            for e in errors))
 
     def test_non_array_root_is_rejected(self):
         errors, warnings = validate({"id": 1})
