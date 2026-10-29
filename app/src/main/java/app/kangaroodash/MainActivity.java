@@ -729,7 +729,7 @@ public class MainActivity extends Activity {
             int rangeBits = Integer.parseInt(rangeValue);
             int dpBits = Integer.parseInt(dpValue);
             int count = Integer.parseInt(kangarooValue);
-            if (rangeBits < 1 || rangeBits > 256) {
+            if (rangeBits < 1 || rangeBits > 255) {
                 statusText.setText(getString(R.string.invalid_range_bits));
                 return;
             }
