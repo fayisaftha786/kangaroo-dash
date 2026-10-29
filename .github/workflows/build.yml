@@ -70,7 +70,7 @@ jobs:
           "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Configure stable debug signing key (optional)
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         shell: bash
         env:
           KANGAROO_DEBUG_KEYSTORE_BASE64: ${{ secrets.KANGAROO_DEBUG_KEYSTORE_BASE64 }}
