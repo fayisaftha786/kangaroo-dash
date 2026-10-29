@@ -71,6 +71,18 @@ public class SolverService extends Service {
         if (in == null) return START_NOT_STICKY;
         final boolean diagnosticsTest = in.getBooleanExtra("diagnostics_test", false);
 
+        // Reject normal solver starts before foreground-service and wake-lock setup.
+        // The safe diagnostics path is simulated and returns before native invocation.
+        if (!diagnosticsTest) {
+            String executionBlock = SolverServiceExecutionPolicy.nativeExecutionBlockReason();
+            if (executionBlock != null) {
+                status = executionBlock;
+                appendLog(new File(getFilesDir(), "scan.log"), status);
+                stopSelf();
+                return START_NOT_STICKY;
+            }
+        }
+
         try {
             NotificationChannel ch = new NotificationChannel("k", "Kangaroo", NotificationManager.IMPORTANCE_LOW);
             getSystemService(NotificationManager.class).createNotificationChannel(ch);
@@ -210,6 +222,15 @@ public class SolverService extends Service {
         try {
             if (diagnosticsTest) {
                 runSafeSelfTest(logF);
+                return;
+            }
+            // The bundled catalog is inspection-only. Enforce that at the Service
+            // boundary too, so a direct or forged Intent cannot launch the native
+            // key-search process by bypassing MainActivity's START gate.
+            String executionBlock = SolverServiceExecutionPolicy.nativeExecutionBlockReason();
+            if (executionBlock != null) {
+                status = executionBlock;
+                appendLog(logF, status);
                 return;
             }
             // Revalidate at the Service boundary instead of trusting the Activity's
