@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Audit puzzle-catalog structure and range arithmetic only.
+"""Audit puzzle-catalog structure, range arithmetic, and derived metadata.
 
-This does not prove source authenticity, address/public-key correspondence,
-live blockchain status, or native-engine argument semantics.
+This does not prove source authenticity, live blockchain status, or native-engine
+argument semantics. Public-key/address correspondence is checked separately.
 Usage: python3 data-check/validate_catalog.py [catalog.json]
 """
 import datetime
