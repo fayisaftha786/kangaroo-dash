@@ -16,7 +16,7 @@ final class SolverServiceInputPolicy {
     static String validationError(String[] args) {
         if (args == null || args.length != 5) return "solver argument count";
 
-        if (!MainActivity.isPublicKeyHex(args[0])) return "public key";
+        if (!MainActivity.isCompressedPublicKeyHex(args[0])) return "public key";
         if (!MainActivity.isValidStartValue(args[1])) return "start value";
 
         Integer rangeBits = positiveDecimal(args[2]);

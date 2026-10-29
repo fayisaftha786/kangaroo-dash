@@ -404,6 +404,8 @@ public class MainActivity extends Activity {
                 String publicKey = publicKeyValue instanceof String
                         ? (String) publicKeyValue : "";
                 boolean hasKey = publicKeyValue instanceof String && isPublicKeyHex(publicKey);
+                boolean nativeKeyCompatible = publicKeyValue instanceof String
+                        && isCompressedPublicKeyHex(publicKey);
                 String startHex = record.optString("range_start_hex", "");
                 String endHex = record.optString("range_end_hex", "");
                 String rangeSize = record.optString("range_size_decimal", "");
@@ -436,7 +438,7 @@ public class MainActivity extends Activity {
                 }
                 if (PuzzleCatalogAuditPolicy.isExecutionEligible(state,
                         record.opt("private_key_already_public"),
-                        record.opt("unsafe_for_wallets"), hasKey, startValid,
+                        record.opt("unsafe_for_wallets"), nativeKeyCompatible, startValid,
                         rangeMetadataValid, searchBits, sourceUrl, sourceLabel, sourceScope,
                         record.opt("native_search_approved"))) {
                     locallyEligibleRecords++;
@@ -456,6 +458,8 @@ public class MainActivity extends Activity {
                     availability.append(" • inspection only: native START not approved");
                 }
                 if (!hasKey) availability.append(" • no usable public key");
+                else if (!nativeKeyCompatible) availability.append(
+                        " • unsupported native key format: compressed 33-byte key required");
                 if (!startValid || !rangeMetadataValid) {
                     availability.append(" • invalid range metadata");
                 } else if (!supportedRange) {
@@ -539,6 +543,7 @@ public class MainActivity extends Activity {
                 record.opt("private_key_already_public"),
                 record.opt("unsafe_for_wallets"));
         boolean keyValid = isPublicKeyHex(key);
+        boolean keyNativeCompatible = isCompressedPublicKeyHex(key);
         boolean rangeValid = bits == id && PuzzleCatalogPolicy.matchesRangeMetadata(
                 id, startHex, endHex, rangeSize, searchBits)
                 && PuzzleCatalogPolicy.hasSupportedSearchBits(searchBits);
@@ -552,9 +557,14 @@ public class MainActivity extends Activity {
         String safetyState = getString(blockedBySafety
                 ? R.string.puzzle_preview_safety_blocked
                 : R.string.puzzle_preview_safety_passed);
-        String keyState = getString(keyValid
-                ? R.string.puzzle_preview_key_valid
-                : R.string.puzzle_preview_key_missing);
+        String keyState;
+        if (keyNativeCompatible) {
+            keyState = getString(R.string.puzzle_preview_key_valid);
+        } else if (keyValid) {
+            keyState = getString(R.string.puzzle_preview_key_unsupported_format);
+        } else {
+            keyState = getString(R.string.puzzle_preview_key_missing);
+        }
         String rangeState = getString(rangeValid
                 ? R.string.puzzle_preview_range_valid
                 : R.string.puzzle_preview_range_invalid);
@@ -609,6 +619,7 @@ public class MainActivity extends Activity {
         range.setText("");
 
         boolean keyValid = isPublicKeyHex(key);
+        boolean keyNativeCompatible = isCompressedPublicKeyHex(key);
         boolean startValid = isValidStartValue(startHex);
         boolean rangeValid = PuzzleCatalogPolicy.matchesRangeMetadata(
                 id, startHex, endHex, rangeSize, rangeBits)
@@ -630,6 +641,12 @@ public class MainActivity extends Activity {
         pub.setText(key);
         start.setText(startHex);
         range.setText(getString(R.string.numeric_field_value, rangeBits));
+
+        if (!keyNativeCompatible) {
+            puzzleHint.setText(getString(R.string.puzzle_preview_only_key_format_blocked,
+                    Integer.toString(id)));
+            return;
+        }
 
         if (PuzzleCatalogPolicy.isBlocked(state,
                 record.opt("private_key_already_public"),
@@ -717,7 +734,7 @@ public class MainActivity extends Activity {
             statusText.setText(getString(R.string.input_all_fields_required));
             return;
         }
-        if (!isPublicKeyHex(pubValue)) {
+        if (!isCompressedPublicKeyHex(pubValue)) {
             statusText.setText(getString(R.string.invalid_public_key));
             return;
         }
@@ -797,6 +814,13 @@ public class MainActivity extends Activity {
         } catch (NumberFormatException e) {
             return false;
         }
+    }
+
+    /** Native CLI contract: the solver accepts compressed secp256k1 points only (33 bytes). */
+    static boolean isCompressedPublicKeyHex(String value) {
+        return value != null && value.length() == 66
+                && (value.startsWith("02") || value.startsWith("03"))
+                && isPublicKeyHex(value);
     }
 
     /**
@@ -933,9 +957,13 @@ public class MainActivity extends Activity {
 
         String publicKey = pub.getText().toString().trim();
         boolean keyValid = isPublicKeyHex(publicKey);
+        boolean nativeKeyCompatible = isCompressedPublicKeyHex(publicKey);
         report.append(keyValid ? "[VALID] Public-key encoding and curve point\n"
                 : "[INVALID] Public key: encoding or curve point is invalid\n");
-        inputsValid &= keyValid;
+        if (keyValid && !nativeKeyCompatible) {
+            report.append("[BLOCKED] Native CLI needs a compressed 33-byte key (66 hex characters)\n");
+        }
+        inputsValid &= nativeKeyCompatible;
 
         String startValue = start.getText().toString().trim();
         boolean startValid = isValidStartValue(startValue);
@@ -948,11 +976,11 @@ public class MainActivity extends Activity {
             int rangeBits = Integer.parseInt(range.getText().toString().trim());
             int dpBits = Integer.parseInt(dp.getText().toString().trim());
             int count = Integer.parseInt(kangaroos.getText().toString().trim());
-            boolean rangeOk = rangeBits >= 1 && rangeBits <= 256;
+            boolean rangeOk = rangeBits >= 1 && rangeBits <= 255;
             boolean dpOk = dpBits >= 1 && dpBits <= 256;
             boolean countOk = count >= 1 && count <= 4096;
-            report.append(rangeOk ? "[VALID FORMAT] Range field is within UI limits\n"
-                    : "[INVALID] Range field must be 1–256\n");
+            report.append(rangeOk ? "[VALID FORMAT] Range field is within native-supported limits\n"
+                    : "[INVALID] Range field must be 1–255\n");
             report.append(dpOk ? "[VALID FORMAT] DP bits field is within UI limits\n"
                     : "[INVALID] DP bits must be 1–256\n");
             report.append(countOk ? "[VALID FORMAT] Kangaroo count is within UI limits\n"
@@ -1144,8 +1172,9 @@ public class MainActivity extends Activity {
                 }
 
                 boolean startValid = isValidStartValue(startHex);
+                boolean nativeKeyCompatible = isCompressedPublicKeyHex(key);
                 boolean candidate = PuzzleCatalogAuditPolicy.isExecutionEligible(
-                        state, privateKeyFlag, unsafeFlag, keyValid, startValid,
+                        state, privateKeyFlag, unsafeFlag, nativeKeyCompatible, startValid,
                         rangeValid, searchBits, sourceUrl, sourceLabel, sourceScope,
                         nativeSearchApproval);
                 if (candidate) {

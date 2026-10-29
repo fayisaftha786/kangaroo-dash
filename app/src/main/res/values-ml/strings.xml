@@ -16,6 +16,7 @@
     <string name="puzzle_preview_safety_passed">നില / സുരക്ഷാ അടയാളങ്ങൾ പരിശോധന കടന്നു</string>
     <string name="puzzle_preview_key_valid">ഉണ്ട്; ഫോർമാറ്റ് ശരിയാണ്</string>
     <string name="puzzle_preview_key_missing">ഇല്ല അല്ലെങ്കിൽ അസാധുവാണ്</string>
+    <string name="puzzle_preview_key_unsupported_format">ഉണ്ട്, curve point ശരിയാണ്; പക്ഷേ uncompressed ആണ്. Native solver-ന് compressed 33-byte hex വേണം</string>
     <string name="puzzle_preview_range_valid">പരിധി വിവരങ്ങൾ പൊരുത്തപ്പെടുന്നു; പിന്തുണയ്ക്കുന്നു</string>
     <string name="puzzle_preview_range_invalid">പരിധി വിവരങ്ങൾ പൊരുത്തപ്പെടുന്നില്ല അല്ലെങ്കിൽ പിന്തുണയ്ക്കുന്നില്ല</string>
     <string name="puzzle_preview_source_present">ഓരോ റെക്കോർഡിനുമുള്ള ഉറവിട പരാമർശമുണ്ട് (യഥാർത്ഥത സ്ഥിരീകരിച്ചിട്ടില്ല)</string>
@@ -31,6 +32,7 @@
     <string name="puzzle_preview_execution_approved">അനുമതി ഉണ്ട്</string>
     <string name="puzzle_preview_execution_unapproved">അനുമതിയില്ല — പരിശോധനയ്ക്ക് മാത്രം</string>
     <string name="puzzle_preview_only_execution_unapproved">പസിൽ #%1$s പരിശോധനയ്ക്കായി മാത്രം ലോഡ് ചെയ്തു. ഈ catalog-ൽ native search-ന് അനുമതിയില്ലാത്തതിനാൽ native START തടഞ്ഞിരിക്കുന്നു.</string>
+    <string name="puzzle_preview_only_key_format_blocked">പസിൽ #%1$s-ന്റെ curve point ശരിയാണ്, പക്ഷേ key uncompressed ആണ്. Native solver-ന് compressed 33-byte key വേണം; START തടഞ്ഞിരിക്കുന്നു.</string>
     <string name="puzzle_missing_public_key">പസിൽ #%1$s-ന് ഉപയോഗിക്കാവുന്ന public key ഇല്ല. വിവരങ്ങൾ പ്രിവ്യൂവിൽ കാണാം; solver ഫീൽഡുകൾ ശൂന്യമായി തുടരും.</string>
     <string name="puzzle_invalid_start">പസിൽ #%1$s-ന്റെ start value അസാധുവാണ്; ഒന്നും മാറ്റിയിട്ടില്ല.</string>
     <string name="puzzle_invalid_range_metadata">പസിൽ #%1$s-ന്റെ start/end/size metadata പൊരുത്തപ്പെടുന്നില്ല; START തടഞ്ഞിരിക്കുന്നു.</string>
@@ -46,7 +48,7 @@
     <string name="engine_already_running">എഞ്ചിൻ ഇതിനകം പ്രവർത്തിക്കുന്നു</string>
     <string name="previous_session_stopping">മുൻ സെഷൻ അടച്ചുപൂട്ടുകയാണ്; കുറച്ച് കഴിഞ്ഞ് വീണ്ടും ശ്രമിക്കുക.</string>
     <string name="input_all_fields_required">എല്ലാ ഫീൽഡുകളും പൂരിപ്പിക്കുക</string>
-    <string name="invalid_public_key">secp256k1 public key അസാധുവാണ്: encoding-വും curve point-വും പരിശോധിക്കുക</string>
+    <string name="invalid_public_key">Compressed secp256k1 public key വേണം: 66 hex characters, 02 അല്ലെങ്കിൽ 03 prefix</string>
     <string name="invalid_start_value">Start value അസാധുവാണ്: 1–64 hexadecimal അക്കങ്ങൾ ഉപയോഗിക്കുക (പരമാവധി 256 bits)</string>
     <string name="invalid_range_bits">Range bits 1 മുതൽ 255 വരെയായിരിക്കണം (native engine പരിധി)</string>
     <string name="invalid_dp_bits">DP bits 1 മുതൽ 256 വരെയായിരിക്കണം</string>

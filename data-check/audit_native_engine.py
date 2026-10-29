@@ -11,6 +11,7 @@ import sys
 REQUIRED_CONTRACT_STRINGS = {
     "range-bit maximum (1..=255)": b"range_bits must be 1..=255",
     "public-key input help": b"Public key to solve",
+    "compressed public-key format": b"compressed hex, 33 bytes",
     "start-value input help": b"Start of search range",
     "range-width input help": b"Bit range to search",
     "DP-bits input help": b"Distinguished point bits",
