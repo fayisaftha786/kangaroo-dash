@@ -20,7 +20,7 @@
     <string name="puzzle_preview_range_invalid">inconsistent or unsupported</string>
     <string name="puzzle_preview_source_present">record reference present (authenticity not verified)</string>
     <string name="puzzle_preview_source_missing">missing or incomplete</string>
-    <string name="puzzle_preview_details">Puzzle #%1$d preview — status: %2$s; address: %3$s; nominal reward: %4$s BTC; safety flags: %5$s; public key: %6$s; range: %7$s–%8$s; range metadata: %9$s; record-specific source: %10$s; native-search authorization: %11$s. Valid fields may appear for inspection only. Missing approval, solved/unsafe status, missing keys or invalid ranges keep native START blocked. Source presence does not prove authenticity or native-engine correctness.</string>
+    <string name="puzzle_preview_details">Puzzle #%1$d preview\nStatus: %2$s\nAddress: %3$s\nNominal reward: %4$s BTC\nSafety flags: %5$s\nPublic key: %6$s\nRange start (8-hex-character groups; spaces are display-only): %7$s\nRange end (8-hex-character groups; spaces are display-only): %8$s\nPuzzle label: %9$d-bit; catalog search_bits: %10$d; inclusive range size: %11$s\nRange metadata: %12$s\nRecord-specific source: %13$s\nNative-search authorization: %14$s\nValid fields are displayed for inspection only. Missing approval or unsafe/solved status, a missing key, or invalid range metadata keeps native START blocked. A source URL does not prove authenticity or native-engine correctness.</string>
     <string name="catalog_load_summary">%1$s loaded for inspection; %2$s pass every current execution gate, including explicit native-search approval. This catalog build is inspection-only: no record is approved for native search. Missing source references, solved/unsafe status, missing keys or invalid ranges never authorize a native search. Selection never starts the engine.</string>
     <string name="catalog_unavailable">Catalog unavailable: %1$s</string>
     <string name="catalog_load_failed">Puzzle catalog could not be loaded</string>
@@ -40,7 +40,9 @@
     <string name="self_test_unavailable">Self-test unavailable: stop the current session first.</string>
     <string name="self_test_starting">SAFE SELF-TEST starting — simulated only; native engine will not launch.</string>
     <string name="self_test_start_failed">Could not start safe self-test: %1$s</string>
-    <string name="start_blocked_reselect">START blocked: reselect an eligible catalog entry. Changing its key/start/range breaks the catalog match.</string>
+    <string name="start_blocked_reselect">START blocked: select an eligible catalog entry and keep its catalog key/start/range unchanged.</string>
+    <string name="start_blocked_inspection_only">START blocked: this catalog is inspection-only. No record has explicit native-search approval; reselecting cannot change that. No engine was started.</string>
+    <string name="start_blocked_catalog_unavailable">START blocked: the catalog could not be loaded. Check catalog diagnostics; no engine was started.</string>
     <string name="engine_already_running">Engine is already running</string>
     <string name="previous_session_stopping">Previous session is still shutting down; try starting again shortly</string>
     <string name="input_all_fields_required">Please fill in every field</string>

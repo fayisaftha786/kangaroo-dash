@@ -59,6 +59,14 @@ public class InputValidationTest {
         assertTrue(MainActivity.isValidStartValue(repeat('0', 64)));
     }
 
+    @Test public void groupsLongHexForPreviewWithoutChangingTheUnderlyingValue() {
+        String hex = "000000001234abcd89abcdef";
+        assertEquals("00000000 1234abcd 89abcdef", MainActivity.formatHexForPreview(hex));
+        assertEquals(hex, MainActivity.formatHexForPreview(hex).replace(" ", ""));
+        assertEquals("—", MainActivity.formatHexForPreview(null));
+        assertEquals("—", MainActivity.formatHexForPreview(""));
+    }
+
     @Test public void rejectsEmptyInvalidOrOversizedStartValues() {
         assertFalse(MainActivity.isValidStartValue(null));
         assertFalse(MainActivity.isValidStartValue(""));
