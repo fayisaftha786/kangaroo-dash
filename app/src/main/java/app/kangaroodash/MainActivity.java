@@ -184,7 +184,7 @@ public class MainActivity extends Activity {
         scp.topMargin = dp(22);
         root.addView(statusCard, scp);
 
-        statusCard.addView(text("ENGINE STATUS", 11, MUTED, true));
+        statusCard.addView(text(getString(R.string.inspection_status_title), 11, MUTED, true));
         statusText = text("Checking status…", 20, ACCENT, true);
         LinearLayout.LayoutParams stp = lp(-1, -2);
         stp.topMargin = dp(8);
@@ -196,7 +196,7 @@ public class MainActivity extends Activity {
         shp.topMargin = dp(5);
         statusCard.addView(statusHint, shp);
 
-        addSection(root, "Performance", makeMetrics());
+        addSection(root, getString(R.string.telemetry_counters_title), makeMetrics());
 
         LinearLayout liveDetails = card();
         elapsedText = text("Elapsed time: —", 13, TEXT, true);
@@ -204,7 +204,7 @@ public class MainActivity extends Activity {
         liveDetails.addView(elapsedText);
         gap(liveDetails, 12);
         liveDetails.addView(speedText);
-        addSection(root, "Live scan", liveDetails);
+        addSection(root, getString(R.string.runtime_telemetry_title), liveDetails);
 
         LinearLayout details = card();
         storageText = text("DP storage: —", 13, TEXT, false);
