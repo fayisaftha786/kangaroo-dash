@@ -13,6 +13,10 @@ def valid_catalog():
             "bits": pid,
             "address": f"synthetic-address-{pid}",
             "status": "unsolved",
+            "reward_btc": pid / 10,
+            "search_class": "address-only",
+            "found_pct": None,
+            "found_offset_pct": None,
             "public_key": None,
             "pubkey_known": False,
             "hash160": None,
@@ -74,6 +78,9 @@ class BundledCatalogValidatorTests(unittest.TestCase):
     def test_solved_records_require_both_safety_flags(self):
         records = valid_catalog()
         records[0]["status"] = "solved"
+        records[0]["search_class"] = "historical"
+        records[0]["found_pct"] = "0%"
+        records[0]["found_offset_pct"] = 0
         errors, _ = validate(records)
         self.assertTrue(any("#1: solved record must be flagged private_key_already_public" in e
                             for e in errors))
@@ -119,14 +126,17 @@ class BundledCatalogValidatorTests(unittest.TestCase):
     def test_rejects_secondary_atlas_url_for_another_record(self):
         records = valid_catalog()
         records[0]["dataset_record_url"] = "https://lotterypuzzle.org/puzzles/2/"
-        errors, warnings = validate(records)
-        self.assertEqual(errors, [])
-        self.assertTrue(any("#1: dataset_record_url missing or does not match" in w for w in warnings))
+        errors, _ = validate(records)
+        self.assertTrue(any("#1: dataset_record_url must reference this record's secondary atlas page" in e
+                            for e in errors))
 
     def test_rejects_mismatched_transaction_explorer_link(self):
         records = valid_catalog()
         txid = "ab" * 32
         records[0]["status"] = "solved"
+        records[0]["search_class"] = "historical"
+        records[0]["found_pct"] = "0%"
+        records[0]["found_offset_pct"] = 0
         records[0]["private_key_already_public"] = True
         records[0]["unsafe_for_wallets"] = True
         records[0]["solve_txid"] = txid
@@ -170,6 +180,54 @@ class BundledCatalogValidatorTests(unittest.TestCase):
             "#1: this catalog build is inspection-only; native_search_approved"
             in error for error in errors
         ))
+
+    def test_rejects_wrong_nominal_reward(self):
+        records = valid_catalog()
+        records[139]["reward_btc"] = 14.5
+        errors, _ = validate(records)
+        self.assertTrue(any("#140: reward_btc must equal the nominal id / 10 allocation" in e
+                            for e in errors))
+
+    def test_rejects_inconsistent_search_class(self):
+        records = valid_catalog()
+        records[139]["search_class"] = "public-key"
+        errors, _ = validate(records)
+        self.assertTrue(any("#140: search_class must be 'address-only'" in e
+                            for e in errors))
+
+    def test_rejects_invalid_found_position_metadata(self):
+        records = valid_catalog()
+        records[0]["status"] = "solved"
+        records[0]["search_class"] = "historical"
+        records[0]["found_pct"] = "101%"
+        records[0]["found_offset_pct"] = 101
+        records[0]["private_key_already_public"] = True
+        records[0]["unsafe_for_wallets"] = True
+        errors, _ = validate(records)
+        self.assertTrue(any("#1: found_pct must be between 0% and 100%" in e for e in errors))
+        self.assertTrue(any("#1: solved record found_offset_pct must be numeric from 0 to 100" in e
+                            for e in errors))
+
+    def test_rejects_found_position_on_unsolved_record(self):
+        records = valid_catalog()
+        records[140]["found_offset_pct"] = 0.0
+        errors, _ = validate(records)
+        self.assertTrue(any("#141: unsolved record found_offset_pct must be null" in e
+                            for e in errors))
+
+    def test_rejects_impossible_calendar_snapshot_date(self):
+        records = valid_catalog()
+        records[0]["dataset_source_snapshot"] = "2026-13-44"
+        errors, _ = validate(records)
+        self.assertTrue(any("#1: dataset_source_snapshot must be a real ISO calendar date YYYY-MM-DD"
+                            in e for e in errors))
+
+    def test_rejects_mixed_snapshot_dates(self):
+        records = valid_catalog()
+        records[1]["dataset_source_snapshot"] = "2026-10-03"
+        errors, _ = validate(records)
+        self.assertTrue(any("dataset_source_snapshot must be consistent across this catalog snapshot"
+                            in e for e in errors))
 
     def test_non_array_root_is_rejected(self):
         errors, warnings = validate({"id": 1})

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Audit puzzle-catalog structure and range arithmetic only.
+"""Audit puzzle-catalog structure, range arithmetic, and derived metadata.
 
-This does not prove source authenticity, address/public-key correspondence,
-live blockchain status, or native-engine argument semantics.
+This does not prove source authenticity, live blockchain status, or native-engine
+argument semantics. Public-key/address correspondence is checked separately.
 Usage: python3 data-check/validate_catalog.py [catalog.json]
 """
+import datetime
 import json
 import re
 import sys
@@ -20,6 +21,7 @@ def validate(data):
     errors = []
     warnings = []
     ids = []
+    snapshot_dates = []
     if not isinstance(data, list):
         return ["catalog root must be a JSON array"], warnings
 
@@ -38,6 +40,11 @@ def validate(data):
         bits = record.get("bits")
         if bits != pid or isinstance(bits, bool):
             errors.append(f"#{pid}: bits must equal id ({pid})")
+
+        reward = record.get("reward_btc")
+        if (not isinstance(reward, (int, float)) or isinstance(reward, bool)
+                or abs(reward * 10 - pid) > 1e-9):
+            errors.append(f"#{pid}: reward_btc must equal the nominal id / 10 allocation")
 
         start = record.get("range_start_hex")
         end = record.get("range_end_hex")
@@ -105,6 +112,37 @@ def validate(data):
             if unsafe is True:
                 errors.append(f"#{pid}: unsolved record cannot be flagged unsafe_for_wallets")
 
+        search_class = record.get("search_class")
+        expected_search_class = (
+            "historical" if status == "solved"
+            else ("public-key" if has_pub else "address-only")
+        )
+        if search_class != expected_search_class:
+            errors.append(
+                f"#{pid}: search_class must be {expected_search_class!r} for its status/public-key fields"
+            )
+
+        found_pct = record.get("found_pct")
+        found_offset_pct = record.get("found_offset_pct")
+        if status == "solved":
+            if not isinstance(found_pct, str) or not re.fullmatch(r"\d+(?:\.\d+)?%", found_pct):
+                errors.append(f"#{pid}: solved record found_pct must be a percentage string")
+            else:
+                try:
+                    pct_value = float(found_pct[:-1])
+                    if not 0 <= pct_value <= 100:
+                        errors.append(f"#{pid}: found_pct must be between 0% and 100%")
+                except ValueError:
+                    errors.append(f"#{pid}: solved record found_pct must be a percentage string")
+            if (not isinstance(found_offset_pct, (int, float)) or isinstance(found_offset_pct, bool)
+                    or not 0 <= found_offset_pct <= 100):
+                errors.append(f"#{pid}: solved record found_offset_pct must be numeric from 0 to 100")
+        else:
+            if found_pct is not None:
+                errors.append(f"#{pid}: unsolved record found_pct must be null")
+            if found_offset_pct is not None:
+                errors.append(f"#{pid}: unsolved record found_offset_pct must be null")
+
         native_search_approved = record.get("native_search_approved")
         if native_search_approved is not False:
             errors.append(
@@ -140,10 +178,15 @@ def validate(data):
         dataset_record_url = record.get("dataset_record_url")
         expected_dataset_record_url = f"https://lotterypuzzle.org/puzzles/{pid}/"
         if dataset_record_url != expected_dataset_record_url:
-            warnings.append(f"#{pid}: dataset_record_url missing or does not match this record's secondary atlas page")
+            errors.append(f"#{pid}: dataset_record_url must reference this record's secondary atlas page")
         snapshot = record.get("dataset_source_snapshot")
-        if not isinstance(snapshot, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", snapshot):
-            errors.append(f"#{pid}: dataset_source_snapshot must be an ISO date YYYY-MM-DD")
+        try:
+            if not isinstance(snapshot, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", snapshot):
+                raise ValueError("not YYYY-MM-DD")
+            datetime.date.fromisoformat(snapshot)
+            snapshot_dates.append(snapshot)
+        except ValueError:
+            errors.append(f"#{pid}: dataset_source_snapshot must be a real ISO calendar date YYYY-MM-DD")
 
         txid = record.get("solve_txid")
         tx_url = record.get("chain_tx_url")
@@ -174,6 +217,8 @@ def validate(data):
         errors.append(f"unexpected IDs: {extra}")
     if len(data) != 160:
         errors.append(f"expected 160 records, got {len(data)}")
+    if len(set(snapshot_dates)) > 1:
+        errors.append("dataset_source_snapshot must be consistent across this catalog snapshot")
 
     return errors, warnings
 
