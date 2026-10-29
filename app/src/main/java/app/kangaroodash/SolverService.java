@@ -212,6 +212,15 @@ public class SolverService extends Service {
                 runSafeSelfTest(logF);
                 return;
             }
+            // The bundled catalog is inspection-only. Enforce that at the Service
+            // boundary too, so a direct or forged Intent cannot launch the native
+            // key-search process by bypassing MainActivity's START gate.
+            String executionBlock = SolverServiceExecutionPolicy.nativeExecutionBlockReason();
+            if (executionBlock != null) {
+                status = executionBlock;
+                appendLog(logF, status);
+                return;
+            }
             // Revalidate at the Service boundary instead of trusting the Activity's
             // Intent extras. Reject bad requests before touching a prior result file
             // or invoking the precompiled native binary.
