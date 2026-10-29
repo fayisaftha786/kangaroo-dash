@@ -3,7 +3,6 @@
 These tests check source-level guard placement; they do not replace Android device
 testing and do not prove the native executable's runtime semantics.
 """
-import re
 import unittest
 from pathlib import Path
 
@@ -62,55 +61,50 @@ class InspectionOnlySourceGuardTests(unittest.TestCase):
         self.assertLess(no_eligible_entries, service_start)
         self.assertLess(selected_entry_gate, service_start)
 
-    def test_service_rejects_normal_start_before_foreground_promotion(self):
+    def test_service_rejects_all_starts_before_foreground_promotion(self):
         on_start = source_region(
             self.service,
             "@Override public int onStartCommand",
             "private static String safeMessage",
         )
-        normal_start_gate = on_start.find("if (!diagnosticsTest)")
+        self.assertNotIn("diagnostics_test", on_start)
+        self.assertNotIn("diagnosticsTest", on_start)
         policy_check = on_start.find("nativeExecutionBlockReason()")
         stop_self = on_start.find("stopSelf();", policy_check)
         foreground_promotion = on_start.find("startForeground(1, n")
-        self.assertGreaterEqual(normal_start_gate, 0)
         self.assertGreaterEqual(policy_check, 0)
         self.assertGreaterEqual(stop_self, 0)
         self.assertGreaterEqual(foreground_promotion, 0)
-        self.assertLess(normal_start_gate, policy_check)
-        self.assertLess(policy_check, foreground_promotion)
+        self.assertLess(policy_check, stop_self)
         self.assertLess(stop_self, foreground_promotion)
 
     def test_worker_rechecks_policy_before_native_process_creation(self):
         loop = source_region(
             self.service,
-            "void loop(String[] a, boolean diagnosticsTest)",
-            "private void runSafeSelfTest(File logFile)",
-        )
-        simulated_path = loop.find("if (diagnosticsTest)")
-        policy_check = loop.find("nativeExecutionBlockReason()")
-        process_creation = loop.find("new ProcessBuilder(")
-        self.assertGreaterEqual(simulated_path, 0)
-        self.assertGreaterEqual(policy_check, 0)
-        self.assertGreaterEqual(process_creation, 0)
-        self.assertLess(simulated_path, policy_check)
-        self.assertLess(policy_check, process_creation)
-
-    def test_safe_self_test_has_no_native_launch_or_result_dp_file_mutation(self):
-        self_test = source_region(
-            self.service,
-            "private void runSafeSelfTest(File logFile)",
+            "void loop(String[] a)",
             "private static String fileState",
         )
-        self.assertIn("simulated only; native engine not launched", self_test)
-        prohibited_patterns = (
-            r"\bnew\s+ProcessBuilder\s*\(",
-            r"\bRuntime\.getRuntime\(\)\.exec\s*\(",
-            r"\bnew\s+FileOutputStream\s*\(",
-            r"\b(?:foundF|dpFile)\.(?:delete|createNewFile|renameTo)\s*\(",
-        )
-        for pattern in prohibited_patterns:
-            with self.subTest(pattern=pattern):
-                self.assertIsNone(re.search(pattern, self_test))
+        self.assertNotIn("diagnosticsTest", loop)
+        self.assertNotIn("runSafeSelfTest", self.service)
+        policy_check = loop.find("nativeExecutionBlockReason()")
+        process_creation = loop.find("new ProcessBuilder(")
+        self.assertGreaterEqual(policy_check, 0)
+        self.assertGreaterEqual(process_creation, 0)
+        self.assertLess(policy_check, process_creation)
+
+    def test_simulated_self_test_entrypoint_is_removed(self):
+        self.assertNotIn("startSafeSelfTest", self.activity)
+        self.assertNotIn('putExtra("diagnostics_test"', self.activity)
+        self.assertNotIn("diagnostics_test", self.service)
+        for path in (
+            "app/src/main/res/values/strings.xml",
+            "app/src/main/res/values-ml/strings.xml",
+        ):
+            strings = read_source(path)
+            self.assertNotIn("safe_self_test_button", strings)
+            self.assertNotIn("self_test_starting", strings)
+            self.assertNotIn("self_test_unavailable", strings)
+            self.assertNotIn("self_test_start_failed", strings)
 
 
 if __name__ == "__main__":

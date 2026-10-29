@@ -278,16 +278,6 @@ public class MainActivity extends Activity {
         actionLp.topMargin = dp(18);
         root.addView(actions, actionLp);
 
-        Button selfTestButton = new Button(this);
-        selfTestButton.setText(getString(R.string.safe_self_test_button));
-        selfTestButton.setTextColor(TEXT);
-        selfTestButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        selfTestButton.setBackground(shape(0xFF164E63, 14));
-        LinearLayout.LayoutParams selfTestLp = lp(-1, 50);
-        selfTestLp.topMargin = dp(10);
-        root.addView(selfTestButton, selfTestLp);
-        selfTestButton.setOnClickListener(v -> startSafeSelfTest());
-
         Button diagnosticsButton = new Button(this);
         diagnosticsButton.setText(getString(R.string.diagnostics_button));
         diagnosticsButton.setTextColor(TEXT);
@@ -677,21 +667,6 @@ public class MainActivity extends Activity {
         loadedPuzzleRange = Integer.toString(rangeBits);
         selectedPuzzleBlocked = false;
         puzzleHint.setText(getString(R.string.puzzle_loaded_summary, id, state));
-    }
-
-    private void startSafeSelfTest() {
-        if (SolverService.isBusy()) {
-            statusText.setText(getString(R.string.self_test_unavailable));
-            return;
-        }
-        Intent testIntent = new Intent(this, SolverService.class);
-        testIntent.putExtra("diagnostics_test", true);
-        try {
-            startForegroundService(testIntent);
-            statusText.setText(getString(R.string.self_test_starting));
-        } catch (Exception e) {
-            statusText.setText(getString(R.string.self_test_start_failed, e.getMessage()));
-        }
     }
 
     private void startSolver() {

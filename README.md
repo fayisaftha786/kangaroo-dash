@@ -28,13 +28,9 @@ Do not treat the DP storage size metric as proof that previously processed work 
 restored after restarting the app or engine.
 
 
-## Safe device self-test (no native search)
+## Verification boundary
 
-The dashboard includes a **RUN SAFE SELF-TEST (NO NATIVE SEARCH)** button. It exercises the Android foreground-service lifecycle for about eight seconds using explicitly simulated counters. It does not invoke `libkangaroo.so`, search a puzzle, or claim a result.
-
-Use it to check the visible service status, notification lifecycle, STOP handling, wake-lock cleanup, and diagnostic log path before any native-engine test. The simulated test must not create, delete, or change `dp.json` or `found.txt`.
-
-A successful self-test proves only that this simulated service path works. It does not verify the native binary, puzzle range semantics, real telemetry, or DP save/load.
+The simulated service self-test has been removed. This build remains inspection-only and blocks native engine launch. UI diagnostics and unit tests do not verify native search semantics or DP save/load behavior.
 
 ## Reliability update and validation boundaries
 
