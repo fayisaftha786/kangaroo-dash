@@ -27,7 +27,8 @@ class CiDebugSigningContractTests(unittest.TestCase):
         self.assertIn("may not update an APK signed by a different run", self.workflow)
 
     def test_workflow_records_and_uploads_apk_signer_fingerprint(self):
-        self.assertIn("apksigner verify --verbose --print-certs", self.workflow)
+        self.assertIn('APKSIGNER="$SDK_ROOT/build-tools/36.0.0/apksigner"', self.workflow)
+        self.assertIn('verify --verbose --print-certs "$APK"', self.workflow)
         self.assertIn("Signer #1 certificate SHA-256 digest:", self.workflow)
         self.assertIn("app/build/outputs/apk/debug/app-debug.apk.certs.txt", self.workflow)
         self.assertIn("APK certificate fingerprint identifies the signer", self.workflow)
