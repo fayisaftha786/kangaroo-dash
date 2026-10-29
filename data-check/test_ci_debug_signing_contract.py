@@ -25,7 +25,6 @@ class CiDebugSigningContractTests(unittest.TestCase):
     def test_signing_secret_is_not_injected_into_pull_request_runs(self):
         step = self.workflow.find("- name: Configure stable debug signing key (optional)")
         self.assertGreaterEqual(step, 0)
-        prefix = self.workflow[max(0, step - 10):step]
         line = self.workflow[step:self.workflow.find("        run: |", step)]
         self.assertIn("if: github.event_name != 'pull_request'", line)
 
