@@ -1172,7 +1172,7 @@ public class MainActivity extends Activity {
                 }
 
                 boolean startValid = isValidStartValue(startHex);
-                boolean nativeKeyCompatible = isCompressedPublicKeyHex(publicKey);
+                boolean nativeKeyCompatible = isCompressedPublicKeyHex(key);
                 boolean candidate = PuzzleCatalogAuditPolicy.isExecutionEligible(
                         state, privateKeyFlag, unsafeFlag, nativeKeyCompatible, startValid,
                         rangeValid, searchBits, sourceUrl, sourceLabel, sourceScope,
