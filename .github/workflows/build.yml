@@ -250,6 +250,7 @@ jobs:
           APKSIGNER="$SDK_ROOT/build-tools/36.0.0/apksigner"
           APK="app/build/outputs/apk/debug/app-debug.apk"
           CERTS="app/build/outputs/apk/debug/app-debug.apk.certs.txt"
+          INFO="app/build/outputs/apk/debug/app-debug.apk.build-info.txt"
           if [[ ! -x "$APKSIGNER" ]]; then
             echo "::error::apksigner was not found at $APKSIGNER"
             exit 1
@@ -261,11 +262,27 @@ jobs:
             echo "::error::Could not read the APK signer SHA-256 certificate fingerprint."
             exit 1
           fi
+          AAPT="$SDK_ROOT/build-tools/36.0.0/aapt"
+          if [[ ! -x "$AAPT" ]]; then
+            echo "::error::aapt was not found at $AAPT"
+            exit 1
+          fi
+          BADGING="$("$AAPT" dump badging "$APK" | sed -n '1p')"
+          {
+            echo "git_commit=${GITHUB_SHA:-unknown}"
+            echo "git_ref=${GITHUB_REF:-unknown}"
+            echo "event=${GITHUB_EVENT_NAME:-unknown}"
+            echo "stable_debug_signing=${KANGAROO_STABLE_DEBUG_SIGNING:-false}"
+            echo "signer_certificate_sha256=$FINGERPRINT"
+            echo "apk_badging=$BADGING"
+            echo "execution_mode=inspection-only; native START blocked"
+          } > "$INFO"
           {
             echo "## APK signing certificate"
             echo
             echo "- Signer certificate SHA-256: `$FINGERPRINT`"
             echo "- Stable CI debug keystore configured: **${KANGAROO_STABLE_DEBUG_SIGNING:-false}**"
+            echo "- Build metadata file: `app-debug.apk.build-info.txt`"
             echo "- APK checksum validates file integrity; APK certificate fingerprint identifies the signer used for Android install/update compatibility."
             echo
           } >> "$GITHUB_STEP_SUMMARY"
@@ -278,4 +295,5 @@ jobs:
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/apk/debug/app-debug.apk.sha256
             app/build/outputs/apk/debug/app-debug.apk.certs.txt
+            app/build/outputs/apk/debug/app-debug.apk.build-info.txt
           retention-days: 14
