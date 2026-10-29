@@ -71,6 +71,18 @@ public class SolverService extends Service {
         if (in == null) return START_NOT_STICKY;
         final boolean diagnosticsTest = in.getBooleanExtra("diagnostics_test", false);
 
+        // Reject normal solver starts before foreground-service and wake-lock setup.
+        // The safe diagnostics path is simulated and returns before native invocation.
+        if (!diagnosticsTest) {
+            String executionBlock = SolverServiceExecutionPolicy.nativeExecutionBlockReason();
+            if (executionBlock != null) {
+                status = executionBlock;
+                appendLog(new File(getFilesDir(), "scan.log"), status);
+                stopSelf();
+                return START_NOT_STICKY;
+            }
+        }
+
         try {
             NotificationChannel ch = new NotificationChannel("k", "Kangaroo", NotificationManager.IMPORTANCE_LOW);
             getSystemService(NotificationManager.class).createNotificationChannel(ch);
