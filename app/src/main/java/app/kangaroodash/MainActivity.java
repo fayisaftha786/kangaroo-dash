@@ -976,11 +976,11 @@ public class MainActivity extends Activity {
             int rangeBits = Integer.parseInt(range.getText().toString().trim());
             int dpBits = Integer.parseInt(dp.getText().toString().trim());
             int count = Integer.parseInt(kangaroos.getText().toString().trim());
-            boolean rangeOk = rangeBits >= 1 && rangeBits <= 256;
+            boolean rangeOk = rangeBits >= 1 && rangeBits <= 255;
             boolean dpOk = dpBits >= 1 && dpBits <= 256;
             boolean countOk = count >= 1 && count <= 4096;
-            report.append(rangeOk ? "[VALID FORMAT] Range field is within UI limits\n"
-                    : "[INVALID] Range field must be 1–256\n");
+            report.append(rangeOk ? "[VALID FORMAT] Range field is within native-supported limits\n"
+                    : "[INVALID] Range field must be 1–255\n");
             report.append(dpOk ? "[VALID FORMAT] DP bits field is within UI limits\n"
                     : "[INVALID] DP bits must be 1–256\n");
             report.append(countOk ? "[VALID FORMAT] Kangaroo count is within UI limits\n"
