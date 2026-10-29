@@ -75,4 +75,7 @@
     <string name="inspection_only_header">INSPECTION-ONLY • SAFE DIAGNOSTICS</string>
     <string name="build_identity">App v%1$s • build %2$s</string>
     <string name="inspection_footer">INSPECTION &amp; DIAGNOSTICS • NATIVE START DISABLED</string>
+    <string name="inspection_status_title">INSPECTION STATUS</string>
+    <string name="telemetry_counters_title">Counters (if available)</string>
+    <string name="runtime_telemetry_title">Runtime telemetry (not proof of an active scan)</string>
 </resources>
