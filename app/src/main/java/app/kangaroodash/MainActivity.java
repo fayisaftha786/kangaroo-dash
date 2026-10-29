@@ -1000,9 +1000,25 @@ public class MainActivity extends Activity {
         }
         inputsValid &= numericValid;
 
+        boolean nativeExecutionAllowed = SolverServiceExecutionPolicy.isNativeExecutionAllowed();
+        report.append(nativeExecutionAllowed
+                ? "[INFO] Native policy remains subject to every catalog safety gate\\n"
+                : "[BLOCKED] This is an inspection-only build; native START is disabled\\n");
+        boolean catalogFieldsBound = loadedPuzzlePublicKey != null
+                && loadedPuzzleStart != null && loadedPuzzleRange != null
+                && PuzzleCatalogPolicy.matchesLoadedValues(loadedPuzzlePublicKey,
+                        loadedPuzzleStart, loadedPuzzleRange,
+                        pub.getText().toString(), start.getText().toString(), range.getText().toString());
+        report.append(catalogFieldsBound
+                ? "[MATCHED] Fields match a loaded eligible catalog record\\n"
+                : "[NOT BOUND] Fields are format-checked only; no eligible catalog record is loaded\\n");
+
         File dpFile = new File(getFilesDir(), "dp.json");
         if (!dpFile.exists()) {
             report.append("[UNVERIFIED] dp.json is missing; no stored DP file to inspect\n");
+            report.append(nativeExecutionAllowed
+                    ? "[INFO] Missing DP data alone does not prove a persistence defect\\n"
+                    : "[NOT TESTED] With native execution disabled, missing DP data is inconclusive\\n");
         } else if (!dpFile.isFile() || !dpFile.canRead()) {
             report.append("[INVALID] dp.json is not a readable regular file\n");
             inputsValid = false;
@@ -1015,10 +1031,11 @@ public class MainActivity extends Activity {
         }
 
         report.append("\nCURRENT INPUT SUMMARY: ")
-                .append(inputsValid
-                        ? "input format checks passed; DP file content unverified"
-                        : "input errors found")
-                .append("\nNote: field format and file metadata do not verify native search semantics or result correctness.");
+                .append(inputsValid ? "input-format checks passed" : "input/storage validation issue found")
+                .append("; catalog binding: ").append(catalogFieldsBound ? "matched" : "not verified")
+                .append("; native execution: ").append(nativeExecutionAllowed ? "subject to catalog gates" : "disabled by inspection-only build")
+                .append("; DP save/load: unverified")
+                .append("\nNote: format checks, catalog metadata, and file metadata do not prove native engine semantics or result correctness.");
         return report.toString();
     }
 
@@ -1057,6 +1074,7 @@ public class MainActivity extends Activity {
         java.util.List<Integer> duplicateIdExamples = new java.util.ArrayList<>();
         java.util.List<Integer> missingKeyExamples = new java.util.ArrayList<>();
         java.util.List<Integer> invalidRangeExamples = new java.util.ArrayList<>();
+        java.util.List<Integer> unsupportedRangeExamples = new java.util.ArrayList<>();
         java.util.List<Integer> missingSourceExamples = new java.util.ArrayList<>();
         java.util.List<Integer> localCandidateExamples = new java.util.ArrayList<>();
         java.util.List<Integer> eligibleMissingSourceExamples = new java.util.ArrayList<>();
@@ -1126,6 +1144,7 @@ public class MainActivity extends Activity {
                     validRanges++;
                     if (!PuzzleCatalogPolicy.hasSupportedSearchBits(searchBits)) {
                         unsupportedRanges++;
+                        addExample(unsupportedRangeExamples, id);
                     }
                 } else {
                     invalidRanges++;
@@ -1227,7 +1246,7 @@ public class MainActivity extends Activity {
                     .append(datasetRecordReferences).append('\n')
                     .append("On-chain transaction references: ").append(chainTransactionReferences)
                     .append("; secondary explorer mirrors: ").append(chainExplorerMirrors).append('\n')
-                    .append("Locally eligible after safety, key, range and per-record source gates: ")
+                    .append("Locally eligible after safety, key, range, per-record source AND native-approval gates: ")
                     .append(locallyRunnable).append('\n')
                     .append("Locally eligible and with complete HTTPS per-record source plus label: ")
                     .append(locallyRunnableWithHttpsSource).append('\n');
@@ -1237,6 +1256,11 @@ public class MainActivity extends Activity {
             report.append("Duplicate IDs: ").append(exampleList(duplicateIdExamples)).append('\n');
             report.append("Missing/invalid public key: ").append(exampleList(missingKeyExamples)).append('\n');
             report.append("Invalid range metadata: ").append(exampleList(invalidRangeExamples)).append('\n');
+            report.append("Unsupported search-width record IDs: ")
+                    .append(exampleList(unsupportedRangeExamples)).append('\n');
+            if (unsupportedRanges > 0) {
+                report.append("Note: unsupported width is distinct from invalid range arithmetic; these records are not execution-supported.\\n");
+            }
             report.append("Missing/non-HTTPS per-record source: ").append(exampleList(missingSourceExamples)).append('\n');
             report.append("Locally eligible records: ").append(exampleList(localCandidateExamples)).append('\n');
         } catch (Exception e) {
