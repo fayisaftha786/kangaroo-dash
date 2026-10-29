@@ -3,7 +3,6 @@
     <string name="load_selected_puzzle">LOAD / INSPECT SELECTED PUZZLE</string>
     <string name="start_button">▶ START</string>
     <string name="stop_button">■ STOP</string>
-    <string name="safe_self_test_button">RUN SAFE SELF-TEST (NO NATIVE SEARCH)</string>
     <string name="diagnostics_button">VIEW / COPY DIAGNOSTICS</string>
     <string name="export_button">EXPORT dp.json / scan.log</string>
     <string name="health_check_button">RUN APP HEALTH CHECK</string>
@@ -39,9 +38,6 @@
     <string name="puzzle_unsupported_range">Puzzle #%1$s has no supported positive search range; nothing was changed.</string>
     <string name="numeric_field_value">%1$d</string>
     <string name="puzzle_loaded_summary">Loaded Puzzle #%1$d (%2$s). This entry passed local checks only; source and native-engine behavior are not independently verified.</string>
-    <string name="self_test_unavailable">Self-test unavailable: stop the current session first.</string>
-    <string name="self_test_starting">SAFE SELF-TEST starting — simulated only; native engine will not launch.</string>
-    <string name="self_test_start_failed">Could not start safe self-test: %1$s</string>
     <string name="start_blocked_reselect">START blocked: select an eligible catalog entry and keep its catalog key/start/range unchanged.</string>
     <string name="start_blocked_inspection_only">START blocked: this catalog is inspection-only. No record has explicit native-search approval; reselecting cannot change that. No engine was started.</string>
     <string name="start_blocked_catalog_unavailable">START blocked: the catalog could not be loaded. Check catalog diagnostics; no engine was started.</string>
