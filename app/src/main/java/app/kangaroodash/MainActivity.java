@@ -1002,23 +1002,23 @@ public class MainActivity extends Activity {
 
         boolean nativeExecutionAllowed = SolverServiceExecutionPolicy.isNativeExecutionAllowed();
         report.append(nativeExecutionAllowed
-                ? "[INFO] Native policy remains subject to every catalog safety gate\\n"
-                : "[BLOCKED] This is an inspection-only build; native START is disabled\\n");
+                ? "[INFO] Native policy remains subject to every catalog safety gate\n"
+                : "[BLOCKED] This is an inspection-only build; native START is disabled\n");
         boolean catalogFieldsBound = loadedPuzzlePublicKey != null
                 && loadedPuzzleStart != null && loadedPuzzleRange != null
                 && PuzzleCatalogPolicy.matchesLoadedValues(loadedPuzzlePublicKey,
                         loadedPuzzleStart, loadedPuzzleRange,
                         pub.getText().toString(), start.getText().toString(), range.getText().toString());
         report.append(catalogFieldsBound
-                ? "[MATCHED] Fields match a loaded eligible catalog record\\n"
-                : "[NOT BOUND] Fields are format-checked only; no eligible catalog record is loaded\\n");
+                ? "[MATCHED] Fields match a loaded eligible catalog record\n"
+                : "[NOT BOUND] Fields are format-checked only; no eligible catalog record is loaded\n");
 
         File dpFile = new File(getFilesDir(), "dp.json");
         if (!dpFile.exists()) {
             report.append("[UNVERIFIED] dp.json is missing; no stored DP file to inspect\n");
             report.append(nativeExecutionAllowed
-                    ? "[INFO] Missing DP data alone does not prove a persistence defect\\n"
-                    : "[NOT TESTED] With native execution disabled, missing DP data is inconclusive\\n");
+                    ? "[INFO] Missing DP data alone does not prove a persistence defect\n"
+                    : "[NOT TESTED] With native execution disabled, missing DP data is inconclusive\n");
         } else if (!dpFile.isFile() || !dpFile.canRead()) {
             report.append("[INVALID] dp.json is not a readable regular file\n");
             inputsValid = false;
@@ -1259,7 +1259,7 @@ public class MainActivity extends Activity {
             report.append("Unsupported search-width record IDs: ")
                     .append(exampleList(unsupportedRangeExamples)).append('\n');
             if (unsupportedRanges > 0) {
-                report.append("Note: unsupported width is distinct from invalid range arithmetic; these records are not execution-supported.\\n");
+                report.append("Note: unsupported width is distinct from invalid range arithmetic; these records are not execution-supported.\n");
             }
             report.append("Missing/non-HTTPS per-record source: ").append(exampleList(missingSourceExamples)).append('\n');
             report.append("Locally eligible records: ").append(exampleList(localCandidateExamples)).append('\n');
