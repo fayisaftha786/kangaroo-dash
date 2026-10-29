@@ -48,7 +48,7 @@
     <string name="input_all_fields_required">എല്ലാ ഫീൽഡുകളും പൂരിപ്പിക്കുക</string>
     <string name="invalid_public_key">secp256k1 public key അസാധുവാണ്: encoding-വും curve point-വും പരിശോധിക്കുക</string>
     <string name="invalid_start_value">Start value അസാധുവാണ്: 1–64 hexadecimal അക്കങ്ങൾ ഉപയോഗിക്കുക (പരമാവധി 256 bits)</string>
-    <string name="invalid_range_bits">Range bits 1 മുതൽ 256 വരെയായിരിക്കണം</string>
+    <string name="invalid_range_bits">Range bits 1 മുതൽ 255 വരെയായിരിക്കണം (native engine പരിധി)</string>
     <string name="invalid_dp_bits">DP bits 1 മുതൽ 256 വരെയായിരിക്കണം</string>
     <string name="invalid_kangaroo_count">Kangaroo എണ്ണം 1 മുതൽ 4096 വരെയായിരിക്കണം</string>
     <string name="invalid_numeric_fields">Range, DP bits, kangaroo എണ്ണം എന്നിവ പൂർണ്ണസംഖ്യകളായിരിക്കണം</string>
