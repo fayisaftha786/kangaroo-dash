@@ -20,7 +20,7 @@
     <string name="puzzle_preview_range_invalid">പരിധി വിവരങ്ങൾ പൊരുത്തപ്പെടുന്നില്ല അല്ലെങ്കിൽ പിന്തുണയ്ക്കുന്നില്ല</string>
     <string name="puzzle_preview_source_present">ഓരോ റെക്കോർഡിനുമുള്ള ഉറവിട പരാമർശമുണ്ട് (യഥാർത്ഥത സ്ഥിരീകരിച്ചിട്ടില്ല)</string>
     <string name="puzzle_preview_source_missing">ഇല്ല അല്ലെങ്കിൽ അപൂർണ്ണമാണ്</string>
-    <string name="puzzle_preview_details">പസിൽ #%1$d വിവരങ്ങൾ — നില: %2$s; address: %3$s; നാമമാത്ര reward: %4$s BTC; സുരക്ഷാ അടയാളങ്ങൾ: %5$s; public key: %6$s; പരിധി: %7$s–%8$s; range metadata: %9$s; ഓരോ രേഖയ്ക്കുമുള്ള ഉറവിടം: %10$s; native-search അനുമതി: %11$s. സാധുവായ വിവരങ്ങൾ പരിശോധനയ്ക്കായി മാത്രം കാണിക്കാം. അനുമതി ഇല്ലാത്തതും solved/unsafe ആയതും key/range അസാധുവായതുമായ റെക്കോർഡുകൾ native START-ൽ നിന്ന് തടയപ്പെടും. source ഉള്ളതുകൊണ്ട് മാത്രം അതിന്റെ ആധികാരികതയോ native engine-ന്റെ കൃത്യതയോ തെളിയില്ല.</string>
+    <string name="puzzle_preview_details">പസിൽ #%1$d — പ്രിവ്യൂ\nനില: %2$s\nവിലാസം: %3$s\nനാമമാത്ര പ്രതിഫലം: %4$s BTC\nസുരക്ഷാ നില: %5$s\nPublic key: %6$s\nRange start (8 hexadecimal അക്ഷരങ്ങളുള്ള ഗ്രൂപ്പുകൾ; spaces display-യ്ക്ക് മാത്രം): %7$s\nRange end (8 hexadecimal അക്ഷരങ്ങളുള്ള ഗ്രൂപ്പുകൾ; spaces display-യ്ക്ക് മാത്രം): %8$s\nപസിൽ ലേബൽ: %9$d-bit; catalog search_bits: %10$d; inclusive range size: %11$s\nRange metadata: %12$s\nരേഖയ്ക്കുള്ള ഉറവിടം: %13$s\nNative-search അനുമതി: %14$s\nഈ വിവരങ്ങൾ പരിശോധനയ്ക്കായി മാത്രം കാണിക്കുന്നു. അനുമതി ഇല്ലാത്തതോ solved/unsafe ആയതോ key ഇല്ലാത്തതോ range metadata അസാധുവായതോ ആയാൽ native START തടഞ്ഞിരിക്കും. source URL ഉണ്ടെന്നത് മാത്രം ആധികാരികതയോ native engine-ന്റെ കൃത്യതയോ തെളിയിക്കുന്നില്ല.</string>
     <string name="catalog_load_summary">%1$s പരിശോധനയ്ക്കായി ലോഡ് ചെയ്തു; %2$s റെക്കോർഡുകൾ native-search അനുമതി ഉൾപ്പെടെയുള്ള എല്ലാ execution നിബന്ധനകളും കടന്നു. ഈ catalog build പരിശോധനയ്ക്കു മാത്രമാണ്; native search-ന് ഒരു റെക്കോർഡിനും അനുമതി നൽകിയിട്ടില്ല. source ഇല്ലാത്തതും solved/unsafe ആയതും key/range അസാധുവായതുമായ റെക്കോർഡുകൾ native search ആരംഭിക്കില്ല. റെക്കോർഡ് തിരഞ്ഞെടുക്കുന്നത് engine ആരംഭിക്കില്ല.</string>
     <string name="catalog_unavailable">കാറ്റലോഗ് ലഭ്യമല്ല: %1$s</string>
     <string name="catalog_load_failed">പസിൽ കാറ്റലോഗ് ലോഡ് ചെയ്യാനായില്ല</string>
@@ -40,7 +40,9 @@
     <string name="self_test_unavailable">സ്വയം പരിശോധന ലഭ്യമല്ല: നിലവിലെ സെഷൻ ആദ്യം നിർത്തുക.</string>
     <string name="self_test_starting">സുരക്ഷിത സ്വയം പരിശോധന തുടങ്ങുന്നു — സിമുലേഷൻ മാത്രം; native engine ആരംഭിക്കില്ല.</string>
     <string name="self_test_start_failed">സുരക്ഷിത സ്വയം പരിശോധന തുടങ്ങാനായില്ല: %1$s</string>
-    <string name="start_blocked_reselect">START തടഞ്ഞിരിക്കുന്നു: യോഗ്യമായ കാറ്റലോഗ് റെക്കോർഡ് വീണ്ടും തിരഞ്ഞെടുക്കുക. key/start/range മാറ്റിയാൽ കാറ്റലോഗുമായി പൊരുത്തം നഷ്ടപ്പെടും.</string>
+    <string name="start_blocked_reselect">START തടഞ്ഞിരിക്കുന്നു: യോഗ്യതയുള്ള catalog record തിരഞ്ഞെടുക്കുക; അതിന്റെ catalog key/start/range മാറ്റരുത്.</string>
+    <string name="start_blocked_inspection_only">START തടഞ്ഞിരിക്കുന്നു: ഈ catalog പരിശോധനയ്ക്കു മാത്രം ഉള്ളതാണ്. ഒരു രേഖയ്ക്കും വ്യക്തമായ native-search അനുമതിയില്ല; വീണ്ടും തിരഞ്ഞെടുക്കുന്നതുകൊണ്ട് അത് മാറില്ല. Engine ആരംഭിച്ചിട്ടില്ല.</string>
+    <string name="start_blocked_catalog_unavailable">START തടഞ്ഞിരിക്കുന്നു: catalog ലോഡ് ചെയ്യാനായില്ല. catalog diagnostics പരിശോധിക്കുക; engine ആരംഭിച്ചിട്ടില്ല.</string>
     <string name="engine_already_running">എഞ്ചിൻ ഇതിനകം പ്രവർത്തിക്കുന്നു</string>
     <string name="previous_session_stopping">മുൻ സെഷൻ അടച്ചുപൂട്ടുകയാണ്; കുറച്ച് കഴിഞ്ഞ് വീണ്ടും ശ്രമിക്കുക.</string>
     <string name="input_all_fields_required">എല്ലാ ഫീൽഡുകളും പൂരിപ്പിക്കുക</string>
