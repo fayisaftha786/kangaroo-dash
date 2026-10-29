@@ -2,7 +2,7 @@
 
 Kangaroo CI produces a **debug APK**, not a production release. Android only installs an APK as an update to an existing app when the package identity and signing certificate are compatible. The APK SHA-256 checksum checks file integrity; it does not prove that the signer matches an installed copy.
 
-By default, a GitHub-hosted runner may create its own Android debug keystore. A different runner can therefore sign the same app code with a different certificate. The CI artifact now includes `app-debug.apk.certs.txt` with the signer certificate fingerprint and warns when a stable key has not been configured.
+By default, a GitHub-hosted runner may create its own Android debug keystore. A different runner can therefore sign the same app code with a different certificate. The CI artifact now includes `app-debug.apk.certs.txt` with the signer certificate fingerprint and warns when a stable key has not been configured. The signing secret is used only for non-PR events (a push to `main` or a manual `workflow_dispatch` run); pull-request builds do not receive it.
 
 ## Configure a stable CI debug key for future builds
 
