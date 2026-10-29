@@ -167,7 +167,9 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams headingLp = lp(-1, -2);
         headingLp.topMargin = dp(5);
         brand.addView(heading, headingLp);
-        brand.addView(text("NATIVE ENGINE  •  LIVE MONITOR", 12, MUTED, false));
+        brand.addView(text(getString(R.string.inspection_only_header), 12, MUTED, false));
+        brand.addView(text(getString(R.string.build_identity, BuildConfig.VERSION_NAME,
+                BuildConfig.GIT_COMMIT_SHORT), 10, MUTED, false));
 
         header.addView(brand, new LinearLayout.LayoutParams(0, -2, 1f));
         liveBadge = text("● STOPPED", 11, MUTED, true);
@@ -332,9 +334,7 @@ public class MainActivity extends Activity {
         resultLp.topMargin = dp(16);
         root.addView(resultText, resultLp);
 
-        TextView footer = text(
-            "KANGAROO  •  DEVICE CONTROL & MONITORING", 11, MUTED, false
-        );
+        TextView footer = text(getString(R.string.inspection_footer), 11, MUTED, false);
         footer.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams footerLp = lp(-1, -2);
         footerLp.topMargin = dp(28);
@@ -858,6 +858,14 @@ public class MainActivity extends Activity {
     private void showDiagnostics() {
         StringBuilder report = new StringBuilder();
         report.append("Kangaroo local diagnostics\n")
+                .append("App version: ").append(BuildConfig.VERSION_NAME)
+                .append(" (code ").append(BuildConfig.VERSION_CODE).append("\n")
+                .append("Package: ").append(BuildConfig.APPLICATION_ID).append('\n')
+                .append("Build commit: ").append(BuildConfig.GIT_COMMIT_SHORT).append('\n')
+                .append("Execution mode: ")
+                .append(SolverServiceExecutionPolicy.isNativeExecutionAllowed()
+                        ? "NATIVE_ALLOWED_BY_POLICY" : "INSPECTION_ONLY; native search blocked")
+                .append('\n')
                 .append("Engine status: ").append(SolverService.status).append('\n')
                 .append("Engine running: ").append(SolverService.running).append('\n')
                 .append("Operations: ").append(SolverService.ops).append('\n')
