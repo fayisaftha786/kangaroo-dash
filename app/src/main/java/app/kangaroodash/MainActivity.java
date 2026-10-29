@@ -859,7 +859,7 @@ public class MainActivity extends Activity {
         StringBuilder report = new StringBuilder();
         report.append("Kangaroo local diagnostics\n")
                 .append("App version: ").append(BuildConfig.VERSION_NAME)
-                .append(" (code ").append(BuildConfig.VERSION_CODE).append("\n")
+                .append(" (code ").append(BuildConfig.VERSION_CODE).append(")\n")
                 .append("Package: ").append(BuildConfig.APPLICATION_ID).append('\n')
                 .append("Build commit: ").append(BuildConfig.GIT_COMMIT_SHORT).append('\n')
                 .append("Execution mode: ")
