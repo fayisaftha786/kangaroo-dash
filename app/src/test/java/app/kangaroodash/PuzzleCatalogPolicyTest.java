@@ -37,6 +37,12 @@ public class PuzzleCatalogPolicyTest {
         assertFalse(PuzzleCatalogPolicy.hasSupportedSearchBits(257));
     }
 
+    @Test public void puzzleOneRangeCanBeInternallyValidButWidthUnsupported() {
+        assertTrue(PuzzleCatalogPolicy.matchesRangeMetadata(1, "1", "1", "1", 0));
+        assertFalse(PuzzleCatalogPolicy.hasSupportedSearchBits(0));
+        assertTrue(PuzzleCatalogPolicy.hasSupportedSearchBits(1));
+    }
+
     @Test public void allowsStartOnlyWhenValuesMatchLoadedCatalogRecord() {
         assertTrue(PuzzleCatalogPolicy.matchesLoadedValues(
                 "02ABC", "0001", "4", "02abc", "0001", "4"));
