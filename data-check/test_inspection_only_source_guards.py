@@ -70,7 +70,7 @@ class InspectionOnlySourceGuardTests(unittest.TestCase):
         )
         normal_start_gate = on_start.find("if (!diagnosticsTest)")
         policy_check = on_start.find("nativeExecutionBlockReason()")
-        stop_self = on_start.find("stopSelf();")
+        stop_self = on_start.find("stopSelf();", policy_check)
         foreground_promotion = on_start.find("startForeground(1, n")
         self.assertGreaterEqual(normal_start_gate, 0)
         self.assertGreaterEqual(policy_check, 0)
