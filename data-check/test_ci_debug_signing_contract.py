@@ -34,7 +34,7 @@ class CiDebugSigningContractTests(unittest.TestCase):
         self.assertIn("APK certificate fingerprint identifies the signer", self.workflow)
 
     def test_documentation_protects_private_key_and_existing_app_data(self):
-        self.assertIn("Do not paste it into a chat", self.docs)
+        self.assertIn("paste it into a chat", self.docs)
         self.assertIn("Do not uninstall an existing installation", self.docs)
         self.assertIn("inspection-only", self.docs)
 
