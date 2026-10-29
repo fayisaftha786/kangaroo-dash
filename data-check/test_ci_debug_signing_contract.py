@@ -22,6 +22,13 @@ class CiDebugSigningContractTests(unittest.TestCase):
         self.assertIn("keytool -list", self.workflow)
         self.assertIn("KANGAROO_STABLE_DEBUG_SIGNING=true", self.workflow)
 
+    def test_signing_secret_is_not_injected_into_pull_request_runs(self):
+        step = self.workflow.find("- name: Configure stable debug signing key (optional)")
+        self.assertGreaterEqual(step, 0)
+        prefix = self.workflow[max(0, step - 10):step]
+        line = self.workflow[step:self.workflow.find("        run: |", step)]
+        self.assertIn("if: github.event_name != 'pull_request'", line)
+
     def test_workflow_warns_when_signing_key_is_not_stable(self):
         self.assertIn("::warning::KANGAROO_DEBUG_KEYSTORE_BASE64 is not configured", self.workflow)
         self.assertIn("may not update an APK signed by a different run", self.workflow)
