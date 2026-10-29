@@ -27,7 +27,16 @@ public class InputValidationTest {
         assertTrue(MainActivity.isPublicKeyHex("04" + x + y));
     }
 
-    @Test public void acceptsUppercasePublicKeyHex() {
+    @Test public void acceptsOnlyCompressedKeysForNativeExecution() {
+        String x = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+        String y = "483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8";
+        assertTrue(MainActivity.isCompressedPublicKeyHex("02" + x));
+        assertTrue(MainActivity.isCompressedPublicKeyHex("03" + x));
+        assertFalse(MainActivity.isCompressedPublicKeyHex("04" + x + y));
+        assertFalse(MainActivity.isCompressedPublicKeyHex(null));
+    }
+
+    @Test public void acceptsUppercasePublicKeyHex()
         String x = "79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798";
         String y = "483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8";
         assertTrue(MainActivity.isPublicKeyHex("02" + x));
