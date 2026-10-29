@@ -48,7 +48,7 @@
     <string name="input_all_fields_required">Please fill in every field</string>
     <string name="invalid_public_key">Invalid secp256k1 public key: check encoding and curve point</string>
     <string name="invalid_start_value">Invalid start value: use 1–64 hexadecimal digits (up to 256 bits)</string>
-    <string name="invalid_range_bits">Range bits must be between 1 and 256</string>
+    <string name="invalid_range_bits">Range bits must be between 1 and 255 (native engine limit)</string>
     <string name="invalid_dp_bits">DP bits must be between 1 and 256</string>
     <string name="invalid_kangaroo_count">Kangaroos must be between 1 and 4096</string>
     <string name="invalid_numeric_fields">Range, DP bits and kangaroos must be whole numbers</string>
