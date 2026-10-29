@@ -32,7 +32,8 @@ public class PuzzleCatalogPolicyTest {
         assertFalse(PuzzleCatalogPolicy.hasSupportedSearchBits(0));
         assertFalse(PuzzleCatalogPolicy.hasSupportedSearchBits(-1));
         assertTrue(PuzzleCatalogPolicy.hasSupportedSearchBits(1));
-        assertTrue(PuzzleCatalogPolicy.hasSupportedSearchBits(256));
+        assertTrue(PuzzleCatalogPolicy.hasSupportedSearchBits(255));
+        assertFalse(PuzzleCatalogPolicy.hasSupportedSearchBits(256));
         assertFalse(PuzzleCatalogPolicy.hasSupportedSearchBits(257));
     }
 

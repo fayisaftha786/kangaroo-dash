@@ -21,7 +21,7 @@ public class SolverServiceInputPolicyTest {
     public void acceptsUpperBoundsWithoutLaunchingNativeCode() {
         String[] args = validArgs();
         args[1] = "f".repeat(64);
-        args[2] = "256";
+        args[2] = "255";
         args[3] = "256";
         args[4] = "4096";
 
@@ -55,6 +55,8 @@ public class SolverServiceInputPolicyTest {
     public void rejectsInvalidRangeWidth() {
         String[] args = validArgs();
         args[2] = "0";
+        assertEquals("range bits", SolverServiceInputPolicy.validationError(args));
+        args[2] = "256";
         assertEquals("range bits", SolverServiceInputPolicy.validationError(args));
         args[2] = "257";
         assertEquals("range bits", SolverServiceInputPolicy.validationError(args));

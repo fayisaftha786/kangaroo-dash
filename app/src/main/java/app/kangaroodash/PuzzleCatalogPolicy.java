@@ -15,8 +15,9 @@ final class PuzzleCatalogPolicy {
     }
 
     static boolean hasSupportedSearchBits(int searchBits) {
-        // The current native UI contract supports positive range widths only.
-        return searchBits >= 1 && searchBits <= 256;
+        // The bundled native ELF contains the validation message 'range_bits must be 1..=255'.
+        // Keep catalog/UI validation aligned with that observed native limit.
+        return searchBits >= 1 && searchBits <= 255;
     }
 
     static boolean matchesLoadedValues(String expectedPublicKey, String expectedStart,

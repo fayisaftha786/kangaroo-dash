@@ -20,7 +20,7 @@ final class SolverServiceInputPolicy {
         if (!MainActivity.isValidStartValue(args[1])) return "start value";
 
         Integer rangeBits = positiveDecimal(args[2]);
-        if (rangeBits == null || rangeBits < 1 || rangeBits > 256) return "range bits";
+        if (rangeBits == null || rangeBits < 1 || rangeBits > 255) return "range bits";
 
         Integer dpBits = positiveDecimal(args[3]);
         if (dpBits == null || dpBits < 1 || dpBits > 256) return "DP bits";
