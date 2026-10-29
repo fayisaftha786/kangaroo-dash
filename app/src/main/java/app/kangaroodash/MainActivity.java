@@ -576,8 +576,10 @@ public class MainActivity extends Activity {
                 addressValue.isEmpty() ? "—" : addressValue,
                 rewardValue.isEmpty() ? "—" : rewardValue,
                 safetyState, keyState,
-                startHex.isEmpty() ? "—" : startHex,
-                endHex.isEmpty() ? "—" : endHex,
+                formatHexForPreview(startHex),
+                formatHexForPreview(endHex),
+                bits, searchBits,
+                rangeSize.isEmpty() ? "—" : rangeSize,
                 rangeState, sourceState, executionApprovalState));
     }
 
@@ -676,6 +678,19 @@ public class MainActivity extends Activity {
     }
 
     private void startSolver() {
+        if (!catalogDataParsed) {
+            String blockedMessage = getString(R.string.start_blocked_catalog_unavailable);
+            statusText.setText(blockedMessage);
+            if (puzzleHint != null) puzzleHint.setText(blockedMessage);
+            return;
+        }
+        if (catalogEligibleEntryCount == 0) {
+            String blockedMessage = getString(R.string.start_blocked_inspection_only);
+            statusText.setText(blockedMessage);
+            // Keep the actual catalog-wide reason visible after periodic status refresh.
+            if (puzzleHint != null) puzzleHint.setText(blockedMessage);
+            return;
+        }
         if (selectedPuzzleBlocked || !PuzzleCatalogPolicy.matchesLoadedValues(
                 loadedPuzzlePublicKey, loadedPuzzleStart, loadedPuzzleRange,
                 pub.getText().toString(), start.getText().toString(), range.getText().toString())) {
@@ -782,6 +797,20 @@ public class MainActivity extends Activity {
         } catch (NumberFormatException e) {
             return false;
         }
+    }
+
+    /**
+     * Groups long hexadecimal values for readability in the preview only.
+     * These spaces must never be copied into or sent as solver input.
+     */
+    static String formatHexForPreview(String value) {
+        if (value == null || value.isEmpty()) return "—";
+        StringBuilder formatted = new StringBuilder(value.length() + value.length() / 8);
+        for (int i = 0; i < value.length(); i++) {
+            if (i > 0 && i % 8 == 0) formatted.append(' ');
+            formatted.append(value.charAt(i));
+        }
+        return formatted.toString();
     }
 
     // The native engine's start value represents a secp256k1-sized integer.
